@@ -16,8 +16,14 @@
 #这个规则的作用是匹配以 http:// 或 https:// 开头，接着是 int，然后是任意数量的字母、数字、下划线、连字符或点，最后以 iqiyi.com 结尾的URL。
 #URL-REGEX,^https?:\/\/int[\w-\.]+iqiyi\.com
 
+# 中国国内常见域名关键词直连
+#DOMAIN-KEYWORD,360buy
+#DOMAIN-KEYWORD,alicdn
+
+
 #China
 DOMAIN-SUFFIX, todesk.com
 DOMAIN-SUFFIX, yuque.com
 DOMAIN-SUFFIX, iplaysoft.com
+DOMAIN-SUFFIX, inyo.cc
  
