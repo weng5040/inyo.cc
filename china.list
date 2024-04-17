@@ -22,6 +22,7 @@
 
 
 #China
+IP-CIDR,43.154.131.105/32,no-resolve
 DOMAIN-SUFFIX, todesk.com
 DOMAIN-SUFFIX, yuque.com
 DOMAIN-SUFFIX, iplaysoft.com
@@ -32,5 +33,3 @@ DOMAIN-SUFFIX, imnks.com
 DOMAIN-SUFFIX, xbase.cloud
 
 #腾讯云香港服务器
-IP-CIDR,43.154.131.105/32,no-resolve
-IP-CIDR,123.123.123.123/32,no-resolve
