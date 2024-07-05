@@ -31,5 +31,6 @@ DOMAIN-SUFFIX, alipan.com
 DOMAIN-SUFFIX, imnks.com
 DOMAIN-SUFFIX, xbase.cloud
 DOMAIN-SUFFIX, landiannews.com
+DOMAIN-SUFFIX, lancdn.com
 #香港云服务器
 IP-CIDR,43.154.131.105/32,no-resolve
