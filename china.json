@@ -3,6 +3,7 @@
   "rules": [
     {
       "domain_suffix": [
+        ".cn",
         "todesk.com",
         "yuque.com",
         "iplaysoft.com",
