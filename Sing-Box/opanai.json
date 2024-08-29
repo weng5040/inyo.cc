@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "rules": [
+    {
+      "domain": [
+      ]
+    },
+    {
+      "domain_suffix": [
+        "openai.com"
+      ]
+    },
+    {
+      "domain_keyword": [
+        "opanai"
+      ]
+    },
+    {
+      "ip_cidr": [
+      ]
+    }
+  ]
+}
