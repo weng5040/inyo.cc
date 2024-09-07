@@ -13,7 +13,10 @@
         "xbase.cloud",
         "landiannews.com",
         "lancdn.com",
-        "ghxi.com"
+        "ghxi.com",
+      ],
+      "domain_keyword":[
+        "synology"
       ],
       "ip_cidr": [
         "43.154.131.105/32",
