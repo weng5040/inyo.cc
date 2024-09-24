@@ -20,7 +20,11 @@
 #DOMAIN-KEYWORD,360buy
 #DOMAIN-KEYWORD,alicdn
 
-
-#China
+DOMAIN-SUFFIX, warcraftlogs.com
+DOMAIN-SUFFIX, wowhead.com
+DOMAIN-SUFFIX, zamimg.com 
+DOMAIN-SUFFIX, wago.io 
+DOMAIN-SUFFIX, huggingface.co 
+DOMAIN-SUFFIX, warcraftlogs.com 
+DOMAIN-SUFFIX, warcraftlogs.com 
 DOMAIN-SUFFIX, btbtt11.com
- 
