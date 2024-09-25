@@ -8,4 +8,5 @@ DOMAIN-SUFFIX,imnks.com
 DOMAIN-SUFFIX,xbase.cloud
 DOMAIN-SUFFIX,landiannews.com
 DOMAIN-SUFFIX,lancdn.com
+#腾讯HongKong轻量云服务器IP
 IP-CIDR,43.154.131.105/32,no-resolve
