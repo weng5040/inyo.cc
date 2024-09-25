@@ -20,15 +20,15 @@
 #DOMAIN-KEYWORD,360buy
 #DOMAIN-KEYWORD,alicdn
 
-DOMAIN-SUFFIX, warcraftlogs.com
-DOMAIN-SUFFIX, wowhead.com
-DOMAIN-SUFFIX, zamimg.com 
-DOMAIN-SUFFIX, wago.io 
-DOMAIN-SUFFIX, huggingface.co 
-DOMAIN-SUFFIX, btbtt11.com
-DOMAIN-SUFFIX, qichiyu.com
-DOMAIN-SUFFIX, guguwangluo.win
-DOMAIN-SUFFIX, yattazen.com 
-DOMAIN-SUFFIX, apphot.cc
-DOMAIN-SUFFIX, browserleaks.com
-DOMAIN-SUFFIX, metacubex.one
+DOMAIN-SUFFIX,warcraftlogs.com
+DOMAIN-SUFFIX,wowhead.com
+DOMAIN-SUFFIX,zamimg.com
+DOMAIN-SUFFIX,wago.io
+DOMAIN-SUFFIX,huggingface.co
+DOMAIN-SUFFIX,btbtt11.com
+DOMAIN-SUFFIX,qichiyu.com
+DOMAIN-SUFFIX,guguwangluo.win
+DOMAIN-SUFFIX,yattazen.com
+DOMAIN-SUFFIX,apphot.cc
+DOMAIN-SUFFIX,browserleaks.com
+DOMAIN-SUFFIX,metacubex.one
