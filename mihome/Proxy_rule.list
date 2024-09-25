@@ -5,10 +5,10 @@
 #USER-AGENT, Bilibili*
 
 # 表示允许与域名apiintl.biliapi.net相关的网络通信。
-#DOMAIN, apiintl.biliapi.net 
+#DOMAIN, apiintl.biliapi.net
 
 # 表示允许与以.acg.tv结尾的域名相关的网络通信。
-#DOMAIN-SUFFIX, acg.tv 
+#DOMAIN-SUFFIX, acg.tv
 
 #表示允许与IP地址为23.40.241.251的主机进行通信。 /32 表示这是一个单个IP地址的CIDR表示法，相当于一个32位的网络前缀。no-resolve 表示不进行域名解析，也就是直接使用IP地址进行通信，而不是尝试解析成域名后再进行通信。
 #IP-CIDR,23.40.241.251/32,no-resolve
@@ -20,16 +20,19 @@
 #DOMAIN-KEYWORD,360buy
 #DOMAIN-KEYWORD,alicdn
 
+#魔兽世界
 DOMAIN-SUFFIX,warcraftlogs.com
 DOMAIN-SUFFIX,raider.io
 DOMAIN-SUFFIX,wowhead.com
-DOMAIN-SUFFIX,zamimg.com
 DOMAIN-SUFFIX,wago.io
+
+#人工智能社区
 DOMAIN-SUFFIX,huggingface.co
-DOMAIN-SUFFIX,btbtt11.com
+#七尺宇
 DOMAIN-SUFFIX,qichiyu.com
-DOMAIN-SUFFIX,guguwangluo.win
-DOMAIN-SUFFIX,yattazen.com
+#安卓软件与PC软件爱好者设立的资源网站
 DOMAIN-SUFFIX,apphot.cc
+#网络测试网站,DNS测试泄露等等
 DOMAIN-SUFFIX,browserleaks.com
+#MetaCubeX/mihomo
 DOMAIN-SUFFIX,metacubex.one
