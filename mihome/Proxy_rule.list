@@ -26,8 +26,6 @@ DOMAIN-SUFFIX,raider.io
 DOMAIN-SUFFIX,wowhead.com
 DOMAIN-SUFFIX,wago.io
 
-#人工智能社区
-DOMAIN-SUFFIX,huggingface.co
 #七尺宇
 DOMAIN-SUFFIX,qichiyu.com
 #安卓软件与PC软件爱好者设立的资源网站
@@ -36,3 +34,8 @@ DOMAIN-SUFFIX,apphot.cc
 DOMAIN-SUFFIX,browserleaks.com
 #MetaCubeX/mihomo
 DOMAIN-SUFFIX,metacubex.one
+#Hugging Face 是一家提供人工智能和机器学习工具与资源的平台，尤其以其自然语言处理（NLP）模型库和 Transformers 开源库而闻名。
+DOMAIN-SUFFIX,hf.co
+DOMAIN-SUFFIX,huggingface.co
+DOMAIN-SUFFIX,modelhub.com
+DOMAIN-SUFFIX,huggingface.tech
