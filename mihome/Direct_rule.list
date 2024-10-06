@@ -39,3 +39,4 @@ IP-CIDR,43.154.131.105/32,no-resolve
 
 #英伟达
 DOMAIN-SUFFIX,nvidia.com
+DOMAIN-SUFFIX,nvidia.cn
