@@ -6,7 +6,7 @@ lang="zh-CN"
 # 如需收集保存壁纸,请去掉下面注释,设置保存文件夹路径
 # 在FileStation里面右键文件夹属性可以看到路径
 # 定义保存路径，如果用户希望收集并保存下载的壁纸。
-#savepath="/volume1/Photo/BingWallpaper"
+savepath="/vol1/BingWallpaper"
 
 # 如需下载4k分辨率,请设置res=4k
 # 如需下载体积更大的4k以上分辨率的原始图片,请设置res=raw
@@ -87,14 +87,25 @@ echo "[x]Converting JPG to WebP..."
 # 使用ImageMagick的convert命令将JPG格式的壁纸转换为WebP格式
 convert $tmpfile /tmp/$webpfile
 
+# 保存壁纸到指定的路径
+if [ "$savepath" != "" ]
+then
+    echo "[x]Saving wallpaper to savepath..."
+    mkdir -p "$savepath"
+    cp $tmpfile "$savepath/$filename"
+    #cp /tmp/$webpfile "$savepath/$(basename $webpfile)"
+    chmod 744 "$savepath/$filename"
+    #chmod 777 "$savepath/$(basename $webpfile)"
+fi
+
 # 提示正在将WebP格式的壁纸复制到fnos路径
 echo "[x]Copying WebP wallpaper to fnos path..."
 
 # 将转换后的WebP文件复制到指定路径
-cp -f /tmp/$webpfile /usr/trim/www/static/thumbnail_bg/wallpaper-1.webp
+cp -f /tmp/$webpfile /usr/trim/www/static/bg/wallpaper-1.webp
 
 # 更改新壁纸的权限为可读写
-chmod 777 /usr/trim/www/static/thumbnail_bg/wallpaper-1.webp
+chmod 777 /usr/trim/www/static/bg/wallpaper-1.webp
 
 # 提示正在清理临时文件
 echo "[x]Clean..."
