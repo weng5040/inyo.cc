@@ -94,7 +94,7 @@ then
     mkdir -p "$savepath"
     cp $tmpfile "$savepath/$filename"
     #cp /tmp/$webpfile "$savepath/$(basename $webpfile)"
-    chmod 744 "$savepath/$filename"
+    chmod 755 "$savepath/$filename"
     #chmod 777 "$savepath/$(basename $webpfile)"
 fi
 
