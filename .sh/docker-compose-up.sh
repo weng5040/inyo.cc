@@ -7,6 +7,7 @@ PROJECTS=(
     "/Docker/HomeAssistant"
     "/Docker/RustDesk"
     "/Docker/Vaultwarden"
+    "/Docker/AdGuardHome"
 )
 
 # 循环更新每个项目
