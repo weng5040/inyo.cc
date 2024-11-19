@@ -41,3 +41,5 @@ DOMAIN-SUFFIX,modelhub.com
 DOMAIN-SUFFIX,huggingface.tech
 #1lou.me电影网站
 DOMAIN-SUFFIX,1lou.me
+#pve
+DOMAIN-SUFFIX,proxmox.com
