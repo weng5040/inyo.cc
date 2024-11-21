@@ -17,9 +17,6 @@ for PROJECT_PATH in "${PROJECTS[@]}"; do
     docker-compose up -d --remove-orphans --pull always
 done
 
-echo "以下是未使用的 Docker 镜像："
-docker image prune -a
-
 echo -e "\n正在自动清理未使用的 Docker 镜像..."
 docker image prune -af
 
