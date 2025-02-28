@@ -8,6 +8,8 @@ PROJECTS=(
     "/Docker/RustDesk"
     "/Docker/Vaultwarden"
     "/Docker/AdGuardHome"
+    "/Docker/Sun-Panel/"
+    "/Docker/phpMyAdmin/"
 )
 
 # 循环更新每个项目
