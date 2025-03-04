@@ -17,7 +17,7 @@ for PROJECT_PATH in "${PROJECTS[@]}"; do
     if [ -d "$PROJECT_PATH" ]; then
         echo "正在更新项目：$PROJECT_PATH"
         cd "$PROJECT_PATH" || continue
-        docker-compose up -d --remove-orphans --pull always
+        docker compose up -d --remove-orphans --pull always
     else
         echo "❌ 目录不存在，跳过：$PROJECT_PATH"
     fi
