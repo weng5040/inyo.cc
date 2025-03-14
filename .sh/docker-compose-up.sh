@@ -1,36 +1,42 @@
 #!/bin/bash
 
-# 定义所有 docker-compose 项目的路径
-PROJECTS=(
-    "/root/docker/DPanel"
-    "/root/docker/Vaultwarden"
-    "/root/docker/Sun-Panel"
-    "/root/docker/Nginx_Proxy"
-    "/root/docker/MariaDB"
-    "/root/docker/MaxKB"
-    "/root/docker/Kener"
-    "/root/docker/Certd"
-)
+# 定义 Docker 项目根目录
+DOCKER_DIR="/root/docker"
 
-# 获取当前时间的函数
+# 日志函数
 log_time() {
     echo "$(date '+%Y-%m-%d %H:%M:%S')"
 }
 
-echo -e "\n$(log_time) 🛠️ 开始更新所有 docker-compose 项目..."
+log() {
+    echo -e "$(log_time) $1"
+}
 
-# 循环更新每个项目
-for PROJECT_PATH in "${PROJECTS[@]}"; do
+# 检查 Docker 是否运行
+if ! docker info &> /dev/null; then
+    log "❌ Docker 未运行，请检查 Docker 服务。"
+    exit 1
+fi
+
+log "🛠️ 开始更新所有 docker-compose 项目..."
+
+# 循环更新每个包含 docker-compose.yaml 文件的子目录
+for PROJECT_PATH in "$DOCKER_DIR"/*; do
     if [ -d "$PROJECT_PATH" ]; then
-        echo "$(log_time) 🔄 正在更新项目：$PROJECT_PATH"
-        cd "$PROJECT_PATH" || continue
-        docker compose up -d --remove-orphans --pull always
-        echo "$(log_time) ✅ 更新完成：$PROJECT_PATH"
-    else
-        echo "$(log_time) ❌ 目录不存在，跳过：$PROJECT_PATH"
+        if [ -f "$PROJECT_PATH/docker-compose.yaml" ]; then
+            # 获取子目录的名称
+            PROJECT_NAME=$(basename "$PROJECT_PATH")
+            log "🔄 正在更新项目：$PROJECT_NAME"
+            cd "$PROJECT_PATH" || continue
+            if docker compose up -d --remove-orphans --pull always; then
+                log "✅ 更新完成：$PROJECT_NAME"
+            else
+                log "❌ 更新失败：$PROJECT_NAME"
+            fi
+        fi
     fi
 done
 
-echo -e "\n$(log_time) 🧹 正在自动清理未使用的 Docker 镜像..."
+log "🧹 正在清理未使用的 Docker 镜像..."
 docker image prune -af
-echo "$(log_time) ✅ 所有 docker-compose 项目已更新完成。"
+log "✅ 所有 docker-compose 项目已更新完成。"
