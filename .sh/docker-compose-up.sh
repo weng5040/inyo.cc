@@ -1,42 +1,44 @@
 #!/bin/bash
 
-# 定义 Docker 项目根目录
 DOCKER_DIR="/root/docker"
 
-# 日志函数
 log_time() {
-    echo "$(date '+%Y-%m-%d %H:%M:%S')"
+    date '+%Y-%m-%d %H:%M:%S'
 }
 
 log() {
     echo -e "$(log_time) $1"
 }
 
-# 检查 Docker 是否运行
-if ! docker info &> /dev/null; then
+if ! docker info &>/dev/null; then
     log "❌ Docker 未运行，请检查 Docker 服务。"
     exit 1
 fi
 
-log "🛠️ 开始更新所有 docker-compose 项目..."
+log "🛠️ 开始执行选择性更新..."
 
-# 循环更新每个包含 docker-compose.yaml 文件的子目录
 for PROJECT_PATH in "$DOCKER_DIR"/*; do
-    if [ -d "$PROJECT_PATH" ]; then
-        if [ -f "$PROJECT_PATH/docker-compose.yaml" ]; then
-            # 获取子目录的名称
-            PROJECT_NAME=$(basename "$PROJECT_PATH")
-            log "🔄 正在更新项目：$PROJECT_NAME"
-            cd "$PROJECT_PATH" || continue
-            if docker compose up -d --remove-orphans --pull always; then
-                log "✅ 更新完成：$PROJECT_NAME"
-            else
-                log "❌ 更新失败：$PROJECT_NAME"
-            fi
+    if [ -d "$PROJECT_PATH" ] && [ -f "$PROJECT_PATH/docker-compose.yaml" ]; then
+        PROJECT_NAME=$(basename "$PROJECT_PATH")
+        cd "$PROJECT_PATH" || continue
+
+        # 核心判断逻辑：仅更新运行中的 compose 项目[7](@ref)
+        RUNNING_CONTAINERS=$(docker compose ps -q 2>/dev/null | wc -l)
+
+        if [ "$RUNNING_CONTAINERS" -eq 0 ]; then
+            log "⏸️ 已跳过停止状态项目：$PROJECT_NAME"
+            continue
+        fi
+
+        log "🔄 正在更新运行中的项目：$PROJECT_NAME"
+        if docker compose up -d --remove-orphans --pull always; then
+            log "✅ 更新成功：$PROJECT_NAME"
+        else
+            log "❌ 更新失败：$PROJECT_NAME"
         fi
     fi
 done
 
-log "🧹 正在清理未使用的 Docker 镜像..."
+log "🧹 执行镜像清理..."
 docker image prune -af
-log "✅ 所有 docker-compose 项目已更新完成。"
+log "✅ 已更新所有运行中的 compose 项目并完成清理。"
