@@ -112,7 +112,7 @@ sniffer:
 
 # DNS 配置
 dns:
-  listen: 0.0.0.0:1053 # 开启 DNS 服务器监听
+  listen: '[::]:1053' # 开启 DNS 服务器监听
   #cache-algorithm: arc  # 缓存算法，arc/lru/mru
   #enable: false # 关闭将使用系统 DNS
   #prefer-h3: false # 是否开启 DoH 支持 HTTP/3，将并发尝试
