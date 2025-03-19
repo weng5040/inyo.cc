@@ -112,7 +112,7 @@ sniffer:
 
 # DNS 配置
 dns:
-  listen: '[::]:1053' # 开启 DNS 服务器监听
+  listen: 0.0.0.0:1053 # 开启 DNS 服务器监听
   #cache-algorithm: arc  # 缓存算法，arc/lru/mru
   #enable: false # 关闭将使用系统 DNS
   #prefer-h3: false # 是否开启 DoH 支持 HTTP/3，将并发尝试
@@ -331,12 +331,16 @@ dns:
     # "rule-set:global,dns": 8.8.8.8
 
 
-
+geodata-mode: false # 是否启用自定义mmdb和geoip
 #自定义 geodata url
 geox-url:
   geoip: "https://fastly.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geoip.dat"
   geosite: "https://fastly.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geosite.dat"
   mmdb: "https://fastly.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geoip.metadb"
+#  geosite: "https://cdn.jsdelivr.net/gh/Loyalsoldier/v2ray-rules-dat@release/geosite.dat"
+#  mmdb: "https://cdn.jsdelivr.net/gh/Loyalsoldier/geoip@release/Country.mmdb"
+#  geoip: "https://cdn.jsdelivr.net/gh/Loyalsoldier/v2ray-rules-dat@release/geoip.dat"
+  asn: "https://cdn.jsdelivr.net/gh/Loyalsoldier/geoip@release/GeoLite2-ASN.mmdb"
 
 geo-auto-update: false # 是否自动更新 geodata
 geo-update-interval: 32 # 更新间隔，单位：小时
@@ -426,8 +430,8 @@ rules:
   - RULE-SET, Netflix_Domain, 🎥 NETFLIX
   - RULE-SET, Google_ip, 🚀 Option, no-resolve
   - RULE-SET, Google_Domain, 🚀 Option
-  #- RULE-SET, China_IP, 🔗 Direct, no-resolve
-  #- RULE-SET, Chian_Domain, 🔗 Direct
+  - RULE-SET, China_IP, 🔗 Direct, no-resolve
+  - RULE-SET, Chian_Domain, 🔗 Direct
   - RULE-SET, Geolocation-!cn, 🌍 Geolocation-!cn
   - RULE-SET, GFW_Domain, 🔒 Great Firewall
   - GEOIP, cn, 🔗 Direct, no-resolve
