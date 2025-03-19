@@ -1,11 +1,5 @@
-# 机场订阅
-proxy-providers:
-  INYO:  # 机场名称
-    <<: *p-url
-    url: "https://s.inyo.cc:10905/s/default/9426b7d1b294b81b4e8144a21bf2983c" # 机场订阅链接
-
 # 延迟检测 URL
-providers: &p-url
+providers: &p-url-providers
   type: http
   # 自动更新订阅时间，单位为秒
   interval: 4620 #77分钟更新一次
@@ -19,6 +13,12 @@ providers: &p-url
     # 节点自动切换差值，单位为毫秒
     tolerance: 100
   proxy: DIRECT
+
+# 机场订阅
+proxy-providers:
+  INYO:  # 机场名称
+    <<: *p-url-providers
+    url: "https://s.inyo.cc:10905/s/default/9426b7d1b294b81b4e8144a21bf2983c" # 机场订阅链接
 
 # 节点信息
 proxies:
@@ -112,7 +112,7 @@ sniffer:
 
 # DNS 配置
 dns:
-  listen: [::]:53 # 开启 DNS 服务器监听
+  listen: 0.0.0.0:1053 # 开启 DNS 服务器监听
   #cache-algorithm: arc  # 缓存算法，arc/lru/mru
   #enable: false # 关闭将使用系统 DNS
   #prefer-h3: false # 是否开启 DoH 支持 HTTP/3，将并发尝试
@@ -129,9 +129,7 @@ dns:
     - localhost.ptlogin2.qq.com
     # fakeip-filter 为 rule-providers 中的名为 fakeip-filter 规则订阅，
     # 且 behavior 必须为 domain/classical，当为 classical 时仅会生效域名类规则
-    - rule-set:fakeip-filter
     # fakeip-filter 为 geosite 中名为 fakeip-filter 的分类（需要自行保证该分类存在）
-    - geosite:fakeip-filter
     - "*.lan"
     - "*.localdomain"
     - "*.example"
@@ -428,8 +426,8 @@ rules:
   - RULE-SET, Netflix_Domain, 🎥 NETFLIX
   - RULE-SET, Google_ip, 🚀 Option, no-resolve
   - RULE-SET, Google_Domain, 🚀 Option
-  - RULE-SET,China_IP, 🔗 Direct, no-resolve
-  - RULE-SET,Chian_Domain, 🔗 Direct
+  #- RULE-SET, China_IP, 🔗 Direct, no-resolve
+  #- RULE-SET, Chian_Domain, 🔗 Direct
   - RULE-SET, Geolocation-!cn, 🌍 Geolocation-!cn
   - RULE-SET, GFW_Domain, 🔒 Great Firewall
   - GEOIP, cn, 🔗 Direct, no-resolve
@@ -441,12 +439,10 @@ rules:
 rule-providers-coolme: &p-coolme {type: http, interval: 2520, behavior: classical, format: text}
 rule-providers-ip: &p-ip {type: http, interval: 25200, behavior: ipcidr, format: mrs}
 rule-providers-domain: &p-domain {type: http, interval: 25200, behavior: domain, format: mrs}
-qcy: &qcy {type: http, interval: 25200, behavior: domain, format: text}
 class: &class {type: http, interval: 25200, behavior: classical, format: text}
 
 rule-providers:
-  Ai: { <<: *qcy, url: "https://raw.githubusercontent.com/qcyhub/rule/master/AI.list" }
-  free: { <<: *qcy, url: "https://raw.githubusercontent.com/qcyhub/rule/master/Free.list" }
+  Ai: { <<: *p-domain, url: "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/category-ai-chat-!cn.mrs" }
   #CoolMeWeng
   CoolMe_Direct: { <<: *p-coolme, url: "https://raw.githubusercontent.com/weng5040/inyo.cc/refs/heads/main/mihome/Direct_rule.list" }
   CoolMe_Proxy: { <<: *p-coolme, url: "https://raw.githubusercontent.com/weng5040/inyo.cc/refs/heads/main/mihome/Proxy_rule.list" }
