@@ -45,4 +45,4 @@ DOMAIN-SUFFIX,nvidia.cn
 DOMAIN-SUFFIX,deepseek.com
 
 #GooglePlay
-DOMAIN-SUFFIX,xn--ngstr-lra8j.com
+#DOMAIN-SUFFIX,xn--ngstr-lra8j.com
