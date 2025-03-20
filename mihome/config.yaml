@@ -18,7 +18,7 @@ providers: &p-url-providers
 proxy-providers:
   INYO:  # 机场名称
     <<: *p-url-providers
-    url: "https://s.inyo.cc:10905/s/default/9426b7d1b294b81b4e8144a21bf2983c" # 机场订阅链接
+    url: "http://172.16.7.7:3001/zx6zVSL7PKcHiw5dcQjm/download/collection/local" # 机场订阅链接
 
 # 节点信息
 proxies:
