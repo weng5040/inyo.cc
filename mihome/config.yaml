@@ -193,7 +193,7 @@ proxy-groups:
   - {name: ⚡️ Speedtest, <<: *g-option }
   - {name: 🔒 Great Firewall, <<: *g-option }
   - {name: 🌍 Geolocation-!cn, <<: *g-option }
-  - {name: 👤 CoolMe_Direct, <<: *g-option , icon:https://raw.githubusercontent.com/Vbaethon/HOMOMIX/main/Icon/Color/China.png}
+  - {name: 👤 CoolMe_Direct, <<: *g-option , icon: "https://raw.githubusercontent.com/Vbaethon/HOMOMIX/main/Icon/Color/China.png" }
   - {name: 👤 CoolMe_Proxy, <<: *g-option }
 
   - {name: 🇭🇰 HongKong, <<: *g-url-test, filter: "(?i)(?=.*(港|hk|hong))^((?!(台|日|韩|新|深|美|ipcl|game|hw)).)*$"}
