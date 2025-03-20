@@ -115,7 +115,7 @@ sniffer:
 # DNS 配置
 dns:
   enable: true # 关闭将使用系统 DNS
-  listen: [::]:1053 # 开启 DNS 服务器监听
+  listen: :1053 # 开启 DNS 服务器监听
   prefer-h3: true # 是否开启 DoH 支持 HTTP/3，将并发尝试
   ipv6: false # false 将返回 AAAA 的空结果
   enhanced-mode: fake-ip # or redir-host
