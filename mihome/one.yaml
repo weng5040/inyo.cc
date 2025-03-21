@@ -155,7 +155,7 @@ rules:
   - RULE-SET, Telegram_IP, Select, no-resolve
   - RULE-SET, Telegram_Domain, Select
   - RULE-SET, PayPal_Domain, Select
-  - RULE-SET, OneDrive_Domain, Select
+  - RULE-SET, OneDrive_Domain, DIRECT
   - RULE-SET, Microsoft@cn_Domain, DIRECT
   - RULE-SET, Microsoft_Domain, Select
   - RULE-SET, Apple@cn_Domain, DIRECT
