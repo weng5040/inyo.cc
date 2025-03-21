@@ -1,0 +1,253 @@
+proxies:
+# vless://0e5d92c1-4402-4b6f-8652-744e6d6fec81@s.inyo.cc:35339?encryption=none&security=tls&fp=chrome&type=tcp&host=s.inyo.cc&headerType=none&sni=s.inyo.cc&flow=xtls-rprx-vision#0e5d92c1-VLESS_TCP/TLS_Vision
+  - name: "ali-Singapore"   # 自定义名称，可以任意命名
+    type: vless                  # 连接类型为 vless
+    server: s.inyo.cc            # 服务器地址，来自链接中的 host 字段
+    port: 35339                  # 服务器端口，从链接中提取
+    uuid: 0e5d92c1-4402-4b6f-8652-744e6d6fec81  # 用户唯一标识符 (UUID) ，链接中指定
+    network: tcp               # 使用 TCP 传输协议（根据链接中的 type=tcp）
+    tls: true                  # 启用 TLS 安全传输（对应链接中的 security=tls）
+    udp: true                  # 启用 UDP 支持（vless-vision 模式下通常启用，如有需要可调整）
+    flow: xtls-rprx-vision     # XTLS 流控模式，采用 xtls-rprx-vision（来自链接中的 flow 参数）
+    client-fingerprint: chrome # 模拟客户端指纹，设置为 chrome（链接中的 fp=chrome）
+    servername: s.inyo.cc       # TLS SNI（服务器名称指示），与 sni 参数一致
+
+#全局配置
+log-level: info  # 日志等级 silent/error/warning/info/debug
+mode: rule # 默认模式，规则模式
+find-process-mode: off #always, 开启，强制匹配所有进程/strict, 默认，由 mihomo 判断是否开启/off, 不匹配进程，推荐在路由器上使用此模式
+#interface-name: en0 # 设置出口网卡
+ipv6: false # 开启 IPv6 总开关，关闭阻断所有 IPv6 链接和屏蔽 DNS 请求 AAAA 记录
+unified-delay: true  # 启用统一延迟，优化不同协议间的延迟处理
+tcp-concurrent: true # TCP 并发连接所有 IP, 将使用最快握手的 TCP
+
+#  TCP keep alive interval
+disable-keep-alive: false # 是否关闭长连接
+keep-alive-idle: 600 # TCP 链接的空闲时间，单位：秒
+keep-alive-interval: 15 # TCP 链接的探活间隔时间，单位：秒
+
+#外部控制配置
+external-controller: 0.0.0.0:9090
+secret: ""
+external-ui: "/etc/mihomo/run/ui"
+external-ui-name: zashboard
+external-ui-url: "https://github.inyo.cc/https://github.com/Zephyruso/zashboard/archive/refs/heads/gh-pages.zip"
+
+
+
+# 入站配置
+allow-lan: true   # 允许局域网连接
+bind-address: "*" # 绑定 IP 地址，仅作用于 allow-lan 为 true，'*'表示所有地址
+port: 7890        # HTTP(S) 代理服务器端口
+socks-port: 7893  # SOCKS5 代理端口
+mixed-port: 7894  # HTTP(S) 和 SOCKS 代理混合端口
+redir-port: 7891  # 透明代理端口，用于 Linux 和 MacOS
+tproxy-port: 7892 # TPROXY 端口
+#authentication:  # http,socks 入口的验证用户名，密码
+#  - "username:password"
+
+profile:  # 缓存
+  store-selected: true  # 保存选中的节点
+  store-fake-ip: true # fakeip缓存
+global-client-fingerprint: chrome  # 设置全局客户端指纹为 Chrome，模拟浏览器身份
+
+# Tun 配置
+tun:
+  enable: true
+  stack: mixed # system/gvisor/mixed
+  suto-route: true
+  auto-redirect: true
+  auto-detect-interface: true
+  # 绕过内核路由表
+  #route-exclude-address-set:
+  #  - "geoip:cn"
+
+# 嗅探
+sniffer:
+  # 是否开启嗅探
+  enable: true
+  ## 对 redir-host 类型识别的流量进行强制嗅探
+  ## 如：Tun、Redir 和 TProxy 并 DNS 为 redir-host 皆属于
+  force-dns-mapping: true
+  ## 对所有未获取到域名的流量进行强制嗅探
+  parse-pure-ip: true
+  # 是否使用嗅探结果作为实际访问，默认 true
+  # 全局配置，优先级低于 sniffer.sniff 实际配置
+  override-destination: true
+  sniff:  # 定义嗅探的协议和端口
+    HTTP:  # HTTP 流量嗅探配置
+      ports: [80, 8080-8880]  # 嗅探这些端口上的 HTTP 流量
+      override-destination: true  # 在嗅探时覆盖目标地址进行处理
+    TLS:  # TLS 流量嗅探配置
+      ports: [443, 8443]  # 嗅探这些端口上的 TLS 流量
+    QUIC:  # QUIC 流量嗅探配置
+      ports: [443, 8443]  # 嗅探这些端口上的 QUIC 流量
+  skip-domain:  # 列出不进行嗅探的域名
+    - "rule-set:Chian_Domain"
+    - "Mijia Cloud"  # 不嗅探该域名的流量
+    - "dlg.io.mi.com"  # 不嗅探该域名的流量
+    - "+.push.apple.com"  # 不嗅探以 .push.apple.com 结尾的流量
+    - "+.apple.com"  # 不嗅探以 .apple.com 结尾的流量
+
+# DNS 配置
+dns:
+  enable: true # 关闭将使用系统 DNS
+  listen: 0.0.0.0:1053 # 开启 DNS 服务器监听
+  prefer-h3: true # 是否开启 DoH 支持 HTTP/3，将并发尝试
+  ipv6: false # false 将返回 AAAA 的空结果
+  enhanced-mode: fake-ip # or redir-host
+  fake-ip-range: 10.7.0.1/16 # fake-ip 池设置
+  fake-ip-filter-mode: blacklist # 配置fake-ip-filter的匹配模式，默认为blacklist/whitelist
+  respect-rules: true # false/true  遵守rules规则
+  # 配置不使用 fake-ip 的域名
+  fake-ip-filter:
+    - '+.cn'
+    - '+.com.cn'
+    - 'rule-set:Private_Domain'
+    - 'rule-set:Chian_Domain'
+    - '*.lan'
+    - 'time.*.com'
+    - 'ntp.*.com'
+    - '*.localdomain'
+    - '*.example'
+    - '*.invalid'
+    - '*.localhost'
+    - '*.test'
+    - '*.local'
+    - '+.inyo.cc'
+    - '+.xn--ngstr-lra8j.com'
+  default-nameserver:
+    - system  # 使用系统 DNS 配置
+  direct-nameserver-follow-policy: false
+  direct-nameserver:
+    - system  # 使用系统 DNS 配置
+  nameserver:
+    - system  # 使用系统 DNS 配置
+  proxy-server-nameserver:
+    - system  # 使用系统 DNS 配置
+
+#数据库配置
+geodata-loader: standard # 数据库加载模式，可选值：memconservative/standard
+geodata-mode: false # false:mmdb/true:geoip
+geo-auto-update: false # 是否自动更新 geodata
+geo-update-interval: 32 # 更新间隔，单位：小时
+geox-url:
+  geoip: "https://cdn.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geoip.dat"
+  geosite: "https://cdn.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geosite.dat"
+  mmdb: "https://cdn.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/country.mmdb"
+  asn: "https://cdn.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/GeoLite2-ASN.mmdb"
+
+
+
+# Matcher implementation used by GeoSite, available implementations:
+# - succinct (default, same as rule-set)
+# - mph (from V2Ray, also `hybrid` in Xray)
+# geosite-matcher: succinct
+
+#proxy-groups锚点
+proxy-groups-selector: &g-selector {type: select, include-all: true, proxies: [DIRECT]}
+proxy-groups-option: &g-option {type: select, proxies: [🚀 Option, 🔀 Selector, ♻️ Auto, DIRECT]}
+proxy-groups-direct: &g-direct {type: select, proxies: [DIRECT, 🚀 Option, 🔀 Selector, ♻️ Auto]}
+proxy-groups-url-test: &g-url-test {type: url-test, include-all: true,tolerance: 20, interval: 300, url: 'https://www.gstatic.com/generate_204'}
+proxy-groups-load-balance: &g-load-balance {type: load-balance, include-all: true, tolerance: 20, interval: 300, url: 'https://www.gstatic.com/generate_204', lazy: true, strategy: consistent-hashing}
+
+proxy-groups:
+  - {name: Select, type: select, include-all: true, proxies: [DIRECT] }
+
+rules:
+  - RULE-SET, CoolMe_Direct, DIRECT
+  - RULE-SET, CoolMe_Proxy, Select
+  - RULE-SET, Private_IP, DIRECT, no-resolve
+  - RULE-SET, Private_Domain, DIRECT
+  - RULE-SET, Ai_Domain, Select
+  - RULE-SET, Docker_Domain, Select
+  - RULE-SET, YouTube_Domain, Select
+  - RULE-SET, Steam@cn_Domain, Select
+  - RULE-SET, Steam_Domain, Select
+  - RULE-SET, GitHub_Domain, Select
+  - RULE-SET, Telegram_IP, Select, no-resolve
+  - RULE-SET, Telegram_Domain, Select
+  - RULE-SET, PayPal_Domain, Select
+  - RULE-SET, OneDrive_Domain, Select
+  - RULE-SET, Microsoft@cn_Domain, Select
+  - RULE-SET, Microsoft_Domain, Select
+  - RULE-SET, Apple@cn_Domain, Select
+  - RULE-SET, Apple_Domain, Select
+  - RULE-SET, Apple_IP, Select, no-resolve
+  - RULE-SET, TikTok_Domain, Select
+  - RULE-SET, Speedtest_Domain, Select
+  - RULE-SET, Netflix_IP, Select, no-resolve
+  - RULE-SET, Netflix_Domain, Select
+  - RULE-SET, Googlefcm_Domain, Select
+  - RULE-SET, Google@cn_Domain, Select
+  - RULE-SET, Google_IP, Select, no-resolve
+  - RULE-SET, Google_Domain, Select
+  - RULE-SET, Chian_Domain, DIRECT
+  - RULE-SET, GFW_Domain, Select
+  - RULE-SET, Geolocation-!cn, Select
+  - RULE-SET, China_IP, DIRECT
+  - GEOIP, cn, DIRECT
+  - GEOIP, lan, DIRECT
+  - GEOSITE, cn, DIRECT
+  - MATCH, Select
+
+#rule-providers锚点
+rule-providers-coolme: &p-coolme {type: http, interval: 2520, behavior: classical, format: text}
+rule-providers-ip: &p-ip {type: http, interval: 25200, behavior: ipcidr, format: mrs}
+rule-providers-domain: &p-domain {type: http, interval: 25200, behavior: domain, format: mrs}
+class: &class {type: http, interval: 25200, behavior: classical, format: text}
+
+rule-providers:
+  Ai_Domain: { <<: *p-domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/category-ai-chat-!cn.mrs" }
+  #CoolMeWeng
+  CoolMe_Direct: { <<: *p-coolme, url: "https://raw.githubusercontent.com/weng5040/inyo.cc/refs/heads/main/mihome/Direct_rule.list" }
+  CoolMe_Proxy: { <<: *p-coolme, url: "https://raw.githubusercontent.com/weng5040/inyo.cc/refs/heads/main/mihome/Proxy_rule.list" }
+  #私有IP&域名
+  Private_IP: { <<: *p-ip, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/private.mrs" }
+  Private_Domain: { <<: *p-domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/private.mrs" }
+  #YouTube域名
+  YouTube_Domain: { <<: *p-domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/youtube.mrs" }
+  #Steam@cn域名&Steam域名
+  Steam@cn_Domain: { <<: *p-domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/steam@cn.mrs" }
+  Steam_Domain: { <<: *p-domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/steam.mrs" }
+  #GitHub域名
+  GitHub_Domain: { <<: *p-domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/github.mrs" }
+  #TelegramIP&域名
+  Telegram_IP: { <<: *p-ip, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/telegram.mrs" }
+  Telegram_Domain: { <<: *p-domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/telegram.mrs" }
+  #PayPal域名
+  PayPal_Domain: { <<: *p-domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/paypal.mrs" }
+  #OneDrive域名
+  OneDrive_Domain: { <<: *p-domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/onedrive.mrs" }
+  #Microsoft域名
+  Microsoft_Domain: { <<: *p-domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/microsoft.mrs" }
+  Microsoft@cn_Domain: { <<: *p-domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/microsoft@cn.mrs" }
+  #Apple@cn域名
+  Apple@cn_Domain: { <<: *p-domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/apple@cn.mrs" }
+  Apple_Domain: { <<: *p-domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/apple.mrs" }
+  Apple_IP: { <<: *p-ip, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo-lite/geoip/apple.mrs" }
+  #Speedtest域名
+  Speedtest_Domain: { <<: *p-domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/ookla-speedtest.mrs" }
+  #TikTok域名
+  TikTok_Domain: { <<: *p-domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/tiktok.mrs" }
+  #(Great Firewall,GFW)防火长城
+  GFW_Domain: { <<: *p-domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/gfw.mrs" }
+  #Geolocation!CN
+  Geolocation-!cn: { <<: *p-domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/geolocation-!cn.mrs" }
+  #ChianIP&China域名
+  China_IP: { <<: *p-ip, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/cn.mrs" }
+  Chian_Domain: { <<: *p-domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/cn.mrs" }
+  #NetflixIP&域名
+  Netflix_IP: { <<: *p-ip, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/netflix.mrs" }
+  Netflix_Domain: { <<: *p-domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/netflix.mrs" }
+  #GoogleIP&域名
+  Google_IP: { <<: *p-ip, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/google.mrs" }
+  Google_Domain: { <<: *p-domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/google.mrs" }
+  Googlefcm_Domain: { <<: *p-domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/googlefcm.mrs" }
+  Google@cn_Domain: { <<: *p-domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/google@cn.mrs" }
+
+  #Docker域名
+  Docker_Domain: { <<: *p-domain, url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/docker.mrs" }
+
+# https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/youtube.mrs
+# https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/netflix.mrs
