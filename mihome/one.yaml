@@ -138,21 +138,8 @@ geox-url:
   asn: "https://cdn.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/GeoLite2-ASN.mmdb"
 
 
-
-# Matcher implementation used by GeoSite, available implementations:
-# - succinct (default, same as rule-set)
-# - mph (from V2Ray, also `hybrid` in Xray)
-# geosite-matcher: succinct
-
-#proxy-groups锚点
-proxy-groups-selector: &g-selector {type: select, include-all: true, proxies: [DIRECT]}
-proxy-groups-option: &g-option {type: select, proxies: [🚀 Option, 🔀 Selector, ♻️ Auto, DIRECT]}
-proxy-groups-direct: &g-direct {type: select, proxies: [DIRECT, 🚀 Option, 🔀 Selector, ♻️ Auto]}
-proxy-groups-url-test: &g-url-test {type: url-test, include-all: true,tolerance: 20, interval: 300, url: 'https://www.gstatic.com/generate_204'}
-proxy-groups-load-balance: &g-load-balance {type: load-balance, include-all: true, tolerance: 20, interval: 300, url: 'https://www.gstatic.com/generate_204', lazy: true, strategy: consistent-hashing}
-
 proxy-groups:
-  - {name: Select, type: select, include-all: true, proxies: [DIRECT] }
+  - {name: Select, type: select, proxies: [ali-Singapore,DIRECT] }
 
 rules:
   - RULE-SET, CoolMe_Direct, DIRECT
@@ -162,24 +149,24 @@ rules:
   - RULE-SET, Ai_Domain, Select
   - RULE-SET, Docker_Domain, Select
   - RULE-SET, YouTube_Domain, Select
-  - RULE-SET, Steam@cn_Domain, Select
+  - RULE-SET, Steam@cn_Domain, DIRECT
   - RULE-SET, Steam_Domain, Select
   - RULE-SET, GitHub_Domain, Select
   - RULE-SET, Telegram_IP, Select, no-resolve
   - RULE-SET, Telegram_Domain, Select
   - RULE-SET, PayPal_Domain, Select
   - RULE-SET, OneDrive_Domain, Select
-  - RULE-SET, Microsoft@cn_Domain, Select
+  - RULE-SET, Microsoft@cn_Domain, DIRECT
   - RULE-SET, Microsoft_Domain, Select
-  - RULE-SET, Apple@cn_Domain, Select
+  - RULE-SET, Apple@cn_Domain, DIRECT
   - RULE-SET, Apple_Domain, Select
   - RULE-SET, Apple_IP, Select, no-resolve
   - RULE-SET, TikTok_Domain, Select
   - RULE-SET, Speedtest_Domain, Select
   - RULE-SET, Netflix_IP, Select, no-resolve
   - RULE-SET, Netflix_Domain, Select
-  - RULE-SET, Googlefcm_Domain, Select
-  - RULE-SET, Google@cn_Domain, Select
+  - RULE-SET, Googlefcm_Domain, DIRECT
+  - RULE-SET, Google@cn_Domain, DIRECT
   - RULE-SET, Google_IP, Select, no-resolve
   - RULE-SET, Google_Domain, Select
   - RULE-SET, Chian_Domain, DIRECT
