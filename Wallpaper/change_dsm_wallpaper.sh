@@ -5,8 +5,8 @@ lang="zh-CN"
 
 # 如果需要收集并保存壁纸，请去掉注释并设置保存文件夹路径
 # In FileStation, you can right-click the folder and check its properties to find the path.
-# 例如：/volume1/myshare/wallpaper
-savepath="/volume1/Main/Photos/BingWallpaper"
+# 例如：/volume1/Photo/BingWallpaper
+savepath="/volume1/Photo/BingWallpaper"
 
 
 # 修改用户桌面壁纸，注释掉此行将替换系统的wallpaper1
