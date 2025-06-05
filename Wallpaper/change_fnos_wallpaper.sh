@@ -6,13 +6,13 @@ lang="zh-CN"
 # 如需收集保存壁纸,请去掉下面注释,设置保存文件夹路径
 # 在FileStation里面右键文件夹属性可以看到路径
 # 定义保存路径，如果用户希望收集并保存下载的壁纸。
-savepath="/vol1/1000/Img/BingWallpaper"
+savepath="/vol1/1000/Images/BingWallpaper"
 
 # 设置FNOS壁纸路径变量
-wallpaper_path="/usr/trim/var/trim_sac/wallpaper/1000/86a28814-a37e-4a16-a2c4-abd001ccc876.jpg"
+wallpaper_path="/usr/trim/var/trim_sac/wallpaper/1000/204b94e3-62b9-4a36-aad3-7942a00c16fa.jpg"
 
 # 设置缓存壁纸路径变量
-thumb_wallpaper_path="/usr/trim/var/trim_sac/wallpaper/1000/thumb-86a28814-a37e-4a16-a2c4-abd001ccc876.jpg"
+thumb_wallpaper_path="/usr/trim/var/trim_sac/wallpaper/1000/thumb-204b94e3-62b9-4a36-aad3-7942a00c16fa.jpg"
 
 # 提示正在收集信息
 echo "[x] 正在收集信息..."
