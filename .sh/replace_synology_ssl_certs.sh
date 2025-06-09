@@ -3,7 +3,7 @@
 # 支持DSM 7.x系统
 
 # 初始化配置
-CERT_SOURCE_DIR="/tmp/certs"      # 默认证书源目录
+CERT_SOURCE_DIR="/volume1/Down"      # 默认证书源目录
 DEBUG=""                          # 启用调试模式请设为非空值
 
 # 错误处理函数
