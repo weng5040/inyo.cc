@@ -76,6 +76,6 @@ for pkg in "${PACKAGES[@]}"; do
 done
 
 # NGINX重启
-synow3tool --gen-all && systemctl restart nginx || warn "NGINX重启失败"
+/usr/syno/bin/synow3tool --gen-all && systemctl restart nginx || warn "NGINX重启失败"
 
 info "SSL证书部署完成"
