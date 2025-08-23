@@ -38,6 +38,9 @@ DOMAIN-SUFFIX,lancdn.com
 #云服务器IP
 IP-CIDR,43.154.131.105/32,no-resolve
 IP-CIDR,43.156.108.146/32,no-resolve
+IP-CIDR,43.156.235.229/32,no-resolve
+
+
 IP-CIDR,155.94.157.191/32,no-resolve
 
 
