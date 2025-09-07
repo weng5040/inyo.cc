@@ -40,7 +40,6 @@ IP-CIDR,43.154.131.105/32,no-resolve
 IP-CIDR,43.156.108.146/32,no-resolve
 IP-CIDR,43.156.235.229/32,no-resolve
 
-
 IP-CIDR,155.94.157.191/32,no-resolve
 
 
@@ -53,3 +52,11 @@ DOMAIN-SUFFIX,deepseek.com
 
 #GooglePlay
 #DOMAIN-SUFFIX,xn--ngstr-lra8j.com
+
+#1lou
+DOMAIN-SUFFIX,www.1lou.cc
+DOMAIN-SUFFIX,www.1lou.icu
+DOMAIN-SUFFIX,www.1lou.one
+DOMAIN-SUFFIX,www.1lou.info
+DOMAIN-SUFFIX,www.1lou.vip
+DOMAIN-SUFFIX,www.1lou.xyz
