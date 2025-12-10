@@ -42,6 +42,9 @@ IP-CIDR,43.156.235.229/32,no-resolve
 
 IP-CIDR,155.94.157.191/32,no-resolve
 
+IP-CIDR,38.55.193.236/32,no-resolve #野草云
+
+
 
 #英伟达
 DOMAIN-SUFFIX,nvidia.com
