@@ -1,44 +1,208 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -Eeuo pipefail
 
-DOCKER_DIR="/root/docker"
-
-log_time() {
-    date '+%Y-%m-%d %H:%M:%S'
-}
+LOG_FILE="/var/log/compose-auto-update.log"
+PRUNE_IMAGES=true
 
 log() {
-    echo -e "$(log_time) $1"
+  echo "[$(date '+%F %T')] $*" | tee -a "$LOG_FILE"
 }
 
-if ! docker info &>/dev/null; then
-    log "❌ Docker 未运行，请检查 Docker 服务。"
+detect_compose() {
+  if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
+    COMPOSE_TYPE="plugin"
+  elif command -v docker-compose >/dev/null 2>&1; then
+    COMPOSE_TYPE="standalone"
+  else
+    echo "❌ 未找到 docker compose 或 docker-compose"
     exit 1
-fi
+  fi
+}
 
-log "🛠️ 开始执行选择性更新..."
+compose_pull() {
+  local workdir="$1"
+  shift || true
 
-for PROJECT_PATH in "$DOCKER_DIR"/*; do
-    if [ -d "$PROJECT_PATH" ] && [ -f "$PROJECT_PATH/docker-compose.yaml" ]; then
-        PROJECT_NAME=$(basename "$PROJECT_PATH")
-        cd "$PROJECT_PATH" || continue
+  if [ "$COMPOSE_TYPE" = "plugin" ]; then
+    (cd "$workdir" && docker compose "$@" pull --ignore-buildable)
+  else
+    (cd "$workdir" && docker-compose "$@" pull)
+  fi
+}
 
-        # 核心判断逻辑：仅更新运行中的 compose 项目[7](@ref)
-        RUNNING_CONTAINERS=$(docker compose ps -q 2>/dev/null | wc -l)
+compose_up() {
+  local workdir="$1"
+  shift || true
 
-        if [ "$RUNNING_CONTAINERS" -eq 0 ]; then
-            log "⏸️ 已跳过停止状态项目：$PROJECT_NAME"
-            continue
-        fi
+  if [ "$COMPOSE_TYPE" = "plugin" ]; then
+    (cd "$workdir" && docker compose "$@" up -d --remove-orphans --force-recreate)
+  else
+    (cd "$workdir" && docker-compose "$@" up -d --remove-orphans --force-recreate)
+  fi
+}
 
-        log "🔄 正在更新运行中的项目：$PROJECT_NAME"
-        if docker compose up -d --remove-orphans --pull always; then
-            log "✅ 更新成功：$PROJECT_NAME"
-        else
-            log "❌ 更新失败：$PROJECT_NAME"
-        fi
+get_project_metadata() {
+  local project="$1"
+  local cid
+
+  cid="$(docker ps \
+    --filter "label=com.docker.compose.project=$project" \
+    --format '{{.ID}}' | head -n1)"
+
+  if [ -z "$cid" ]; then
+    return 1
+  fi
+
+  local working_dir config_files
+  working_dir="$(docker inspect -f '{{ index .Config.Labels "com.docker.compose.project.working_dir" }}' "$cid" 2>/dev/null || true)"
+  config_files="$(docker inspect -f '{{ index .Config.Labels "com.docker.compose.project.config_files" }}' "$cid" 2>/dev/null || true)"
+
+  printf '%s\n%s\n' "${working_dir:-}" "${config_files:-}"
+}
+
+build_compose_file_args() {
+  local config_files="$1"
+  COMPOSE_FILE_ARGS=()
+
+  if [ -n "$config_files" ] && [ "$config_files" != "<no value>" ]; then
+    IFS=',' read -r -a files <<< "$config_files"
+    for f in "${files[@]}"; do
+      [ -n "$f" ] || continue
+      COMPOSE_FILE_ARGS+=(-f "$f")
+    done
+  fi
+}
+
+get_project_containers() {
+  local project="$1"
+  docker ps \
+    --filter "label=com.docker.compose.project=$project" \
+    --format '{{.ID}}'
+}
+
+need_recreate_project() {
+  local project="$1"
+  local cid
+  local changed=1
+
+  while read -r cid; do
+    [ -n "$cid" ] || continue
+
+    local service image_ref old_image_id new_image_id
+    service="$(docker inspect -f '{{ index .Config.Labels "com.docker.compose.service" }}' "$cid" 2>/dev/null || true)"
+    image_ref="$(docker inspect -f '{{.Config.Image}}' "$cid" 2>/dev/null || true)"
+    old_image_id="$(docker inspect -f '{{.Image}}' "$cid" 2>/dev/null || true)"
+    new_image_id="$(docker image inspect "$image_ref" --format '{{.Id}}' 2>/dev/null || true)"
+
+    log "🔍 服务: ${service:-unknown}"
+    log "   image_ref: ${image_ref:-N/A}"
+    log "   pull前容器ImageID: ${old_image_id:-N/A}"
+    log "   pull后标签ImageID: ${new_image_id:-N/A}"
+
+    if [ -z "$image_ref" ] || [ -z "$old_image_id" ] || [ -z "$new_image_id" ]; then
+      log "   ⚠️ 该服务无法完整比对，先按无变化处理"
+      continue
     fi
-done
 
-log "🧹 执行镜像清理..."
-docker image prune -af
-log "✅ 已更新所有运行中的 compose 项目并完成清理。"
+    if [ "$old_image_id" != "$new_image_id" ]; then
+      log "   ✅ 检测到镜像变化"
+      changed=0
+      break
+    else
+      log "   ➖ 镜像未变化"
+    fi
+  done < <(get_project_containers "$project")
+
+  return "$changed"
+}
+
+main() {
+  detect_compose
+  mkdir -p "$(dirname "$LOG_FILE")"
+  touch "$LOG_FILE"
+
+  log "开始发现运行中的 Compose 项目..."
+
+  mapfile -t PROJECTS < <(
+    docker ps \
+      --filter "label=com.docker.compose.project" \
+      --format '{{.Label "com.docker.compose.project"}}' \
+      | sort -u
+  )
+
+  if [ "${#PROJECTS[@]}" -eq 0 ]; then
+    log "没有发现运行中的 Compose 项目"
+    exit 0
+  fi
+
+  success=0
+  skip=0
+  fail=0
+
+  for project in "${PROJECTS[@]}"; do
+    log "--------------------------------------------"
+    log "处理项目: $project"
+
+    if ! meta="$(get_project_metadata "$project")"; then
+      log "⚠️ 无法获取项目元数据，跳过: $project"
+      skip=$((skip + 1))
+      continue
+    fi
+
+    working_dir="$(printf '%s\n' "$meta" | sed -n '1p')"
+    config_files="$(printf '%s\n' "$meta" | sed -n '2p')"
+
+    build_compose_file_args "$config_files"
+
+    base_dir=""
+    if [ -n "$config_files" ] && [ "$config_files" != "<no value>" ]; then
+      IFS=',' read -r -a files <<< "$config_files"
+      base_dir="$(dirname "${files[0]}")"
+    elif [ -n "$working_dir" ] && [ "$working_dir" != "<no value>" ]; then
+      base_dir="$working_dir"
+    fi
+
+    if [ -z "$base_dir" ] || [ ! -d "$base_dir" ]; then
+      log "⚠️ 无法定位 compose 目录，跳过: $project"
+      skip=$((skip + 1))
+      continue
+    fi
+
+    log "📁 定位目录: $base_dir"
+    if [ -n "$config_files" ] && [ "$config_files" != "<no value>" ]; then
+      log "📄 配置文件: $config_files"
+    fi
+
+    if ! compose_pull "$base_dir" "${COMPOSE_FILE_ARGS[@]}"; then
+      log "❌ pull 失败: $project"
+      fail=$((fail + 1))
+      continue
+    fi
+
+    if need_recreate_project "$project"; then
+      log "🔄 项目存在镜像更新，执行 up -d 重建..."
+      if compose_up "$base_dir" "${COMPOSE_FILE_ARGS[@]}"; then
+        log "✅ 更新并重建完成: $project"
+        success=$((success + 1))
+      else
+        log "❌ 重建失败: $project"
+        fail=$((fail + 1))
+      fi
+    else
+      log "✅ 项目镜像无变化，跳过重建: $project"
+      skip=$((skip + 1))
+    fi
+  done
+
+  log "--------------------------------------------"
+  log "更新结束: 成功=$success, 跳过=$skip, 失败=$fail"
+
+  if [ "$PRUNE_IMAGES" = true ]; then
+    log "清理悬空镜像..."
+    docker image prune -f >/dev/null 2>&1 || true
+  fi
+
+  log "全部完成"
+}
+
+main "$@"
