@@ -19,7 +19,7 @@ detect_compose() {
   fi
 }
 
-compose_pull() {
+compose_pull_once() {
   local workdir="$1"
   shift || true
 
@@ -28,6 +28,43 @@ compose_pull() {
   else
     (cd "$workdir" && docker-compose "$@" pull)
   fi
+}
+
+compose_pull_with_retry() {
+  local workdir="$1"
+  shift || true
+
+  local max_retry=3
+  local attempt=1
+
+  while [ "$attempt" -le "$max_retry" ]; do
+    log "📥 pull 尝试 ${attempt}/${max_retry}: $workdir"
+
+    if timeout 900 bash -c '
+      workdir="$1"
+      compose_type="$2"
+      shift 2
+      if [ "$compose_type" = "plugin" ]; then
+        cd "$workdir" && docker compose "$@" pull --ignore-buildable
+      else
+        cd "$workdir" && docker-compose "$@" pull
+      fi
+    ' _ "$workdir" "$COMPOSE_TYPE" "$@"; then
+      log "✅ pull 成功: $workdir"
+      return 0
+    fi
+
+    log "⚠️ pull 失败: $workdir"
+
+    if [ "$attempt" -lt "$max_retry" ]; then
+      log "🔁 立即重试..."
+    fi
+
+    attempt=$((attempt + 1))
+  done
+
+  log "❌ pull 连续失败 3 次，跳过项目: $workdir"
+  return 1
 }
 
 compose_up() {
@@ -173,10 +210,10 @@ main() {
       log "📄 配置文件: $config_files"
     fi
 
-    if ! compose_pull "$base_dir" "${COMPOSE_FILE_ARGS[@]}"; then
-      log "❌ pull 失败: $project"
-      fail=$((fail + 1))
-      continue
+    if ! compose_pull_with_retry "$base_dir" "${COMPOSE_FILE_ARGS[@]}"; then
+    log "❌ pull 最终失败，跳过项目: $project"
+    fail=$((fail + 1))
+    continue
     fi
 
     if need_recreate_project "$project"; then
