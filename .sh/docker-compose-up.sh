@@ -67,6 +67,51 @@ compose_pull_with_retry() {
   return 1
 }
 
+# ─────────────────────────────────────────────────────────────────────────────
+# 新增: 对含 Dockerfile 的项目执行 pull，忽略本地镜像拉取失败
+# 这类项目通常有 image: openclaw-custom:latest 这样的本地镜像，
+# docker compose pull 会尝试从 registry 拉取并失败，--ignore-pull-failures 可跳过
+# ─────────────────────────────────────────────────────────────────────────────
+compose_pull_ignore_local_failures() {
+  local workdir="$1"
+  shift || true
+
+  log "📥 pull (忽略本地镜像失败): $workdir"
+
+  if [ "$COMPOSE_TYPE" = "plugin" ]; then
+    (cd "$workdir" && docker compose "$@" pull --ignore-buildable --ignore-pull-failures) || true
+  else
+    (cd "$workdir" && docker-compose "$@" pull --ignore-pull-failures) || true
+  fi
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 新增: 对含 Dockerfile 的项目执行 build --pull
+# --pull 让 Docker 构建时拉取 FROM 指定的最新基础镜像，而非使用本地缓存
+# 这样在官方镜像更新后，自定义镜像也能拿到最新基础层
+# ─────────────────────────────────────────────────────────────────────────────
+compose_build_with_pull() {
+  local workdir="$1"
+  shift || true
+
+  log "🔨 build --pull: $workdir"
+
+  if [ "$COMPOSE_TYPE" = "plugin" ]; then
+    (cd "$workdir" && docker compose "$@" build --pull)
+  else
+    (cd "$workdir" && docker-compose "$@" build --pull)
+  fi
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 新增: 检测项目目录下是否存在 Dockerfile
+# 用于判断项目是否使用了自定义构建镜像 (build: 指令)
+# ─────────────────────────────────────────────────────────────────────────────
+has_dockerfile() {
+  local dir="$1"
+  [ -f "$dir/Dockerfile" ]
+}
+
 compose_up() {
   local workdir="$1"
   shift || true
@@ -133,8 +178,8 @@ need_recreate_project() {
 
     log "🔍 服务: ${service:-unknown}"
     log "   image_ref: ${image_ref:-N/A}"
-    log "   pull前容器ImageID: ${old_image_id:-N/A}"
-    log "   pull后标签ImageID: ${new_image_id:-N/A}"
+    log "   更新前容器ImageID: ${old_image_id:-N/A}"
+    log "   更新后标签ImageID: ${new_image_id:-N/A}"
 
     if [ -z "$image_ref" ] || [ -z "$old_image_id" ] || [ -z "$new_image_id" ]; then
       log "   ⚠️ 该服务无法完整比对，先按无变化处理"
@@ -210,10 +255,29 @@ main() {
       log "📄 配置文件: $config_files"
     fi
 
-    if ! compose_pull_with_retry "$base_dir" "${COMPOSE_FILE_ARGS[@]}"; then
-    log "❌ pull 最终失败，跳过项目: $project"
-    fail=$((fail + 1))
-    continue
+    # ─────────────────────────────────────────────────────────────────────────
+    # 修改: 根据是否存在 Dockerfile 分支处理
+    # ─────────────────────────────────────────────────────────────────────────
+    if has_dockerfile "$base_dir"; then
+      # 有 Dockerfile 的项目 (如 OpenClaw): pull + build 模式
+      # pull 拉取非构建服务的远程镜像 (如 init 服务)
+      # build --pull 重新构建自定义镜像，拉取最新的 FROM 基础镜像
+      log "🔧 检测到 Dockerfile，使用 pull + build 模式"
+
+      compose_pull_ignore_local_failures "$base_dir" "${COMPOSE_FILE_ARGS[@]}"
+
+      if ! compose_build_with_pull "$base_dir" "${COMPOSE_FILE_ARGS[@]}"; then
+        log "❌ build 失败，跳过项目: $project"
+        fail=$((fail + 1))
+        continue
+      fi
+    else
+      # 纯远程镜像项目: 仅 pull (原有逻辑)
+      if ! compose_pull_with_retry "$base_dir" "${COMPOSE_FILE_ARGS[@]}"; then
+        log "❌ pull 最终失败，跳过项目: $project"
+        fail=$((fail + 1))
+        continue
+      fi
     fi
 
     if need_recreate_project "$project"; then
