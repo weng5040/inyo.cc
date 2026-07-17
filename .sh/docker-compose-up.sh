@@ -14,7 +14,7 @@ detect_compose() {
   elif command -v docker-compose >/dev/null 2>&1; then
     COMPOSE_TYPE="standalone"
   else
-    echo "❌ 未找到 docker compose 或 docker-compose"
+    echo "❌ 未找到 docker compose 或 docker-compose" >&2
     exit 1
   fi
 
@@ -28,28 +28,50 @@ compose_pull_with_retry() {
   local max_retry=3
   local attempt=1
   local delay
+  local output
+  local exit_code
+  local started_at
+  local elapsed
 
   while [ "$attempt" -le "$max_retry" ]; do
+    started_at="$(date +%s)"
+
     log "📥 pull 尝试 ${attempt}/${max_retry}: $workdir"
 
-    if timeout 900 bash -c '
-      workdir="$1"
-      compose_type="$2"
-      shift 2
+    set +e
+    output="$(
+      timeout 900 bash -c '
+        workdir="$1"
+        compose_type="$2"
+        shift 2
 
-      cd "$workdir" || exit 1
+        cd "$workdir" || exit 1
 
-      if [ "$compose_type" = "plugin" ]; then
-        exec docker compose "$@" pull --ignore-buildable
-      else
-        exec docker-compose "$@" pull
-      fi
-    ' _ "$workdir" "$COMPOSE_TYPE" "$@" 2>&1 | tee -a "$LOG_FILE"; then
-      log "✅ pull 成功: $workdir"
+        if [ "$compose_type" = "plugin" ]; then
+          exec docker compose "$@" pull --ignore-buildable --quiet
+        else
+          exec docker-compose "$@" pull --quiet
+        fi
+      ' _ "$workdir" "$COMPOSE_TYPE" "$@" 2>&1
+    )"
+    exit_code=$?
+    set -e
+
+    elapsed=$(( $(date +%s) - started_at ))
+
+    if [ "$exit_code" -eq 0 ]; then
+      log "✅ pull 成功: $workdir（耗时 ${elapsed}s）"
       return 0
     fi
 
-    log "⚠️ pull 失败: $workdir"
+    log "⚠️ pull 失败: $workdir（退出码: $exit_code，耗时 ${elapsed}s）"
+
+    if [ -n "$output" ]; then
+      log "错误详情:"
+      while IFS= read -r line; do
+        [ -n "$line" ] && log "   $line"
+      done <<< "$output"
+    fi
 
     if [ "$attempt" -lt "$max_retry" ]; then
       case "$attempt" in
@@ -76,7 +98,7 @@ compose_up() {
   log "🚀 执行 compose up -d: $workdir"
 
   (
-    cd "$workdir"
+    cd "$workdir" || exit 1
 
     if [ "$COMPOSE_TYPE" = "plugin" ]; then
       docker compose "$@" up -d --remove-orphans
@@ -89,6 +111,8 @@ compose_up() {
 get_project_metadata() {
   local project="$1"
   local cid
+  local working_dir
+  local config_files
 
   cid="$(
     docker ps \
@@ -100,8 +124,6 @@ get_project_metadata() {
   if [ -z "$cid" ]; then
     return 1
   fi
-
-  local working_dir config_files
 
   working_dir="$(
     docker inspect \
@@ -121,15 +143,14 @@ get_project_metadata() {
 build_compose_args() {
   local project="$1"
   local config_files="$2"
+  local file
+  local -a files=()
 
   COMPOSE_ARGS=(-p "$project")
 
   if [ -z "$config_files" ] || [ "$config_files" = "<no value>" ]; then
     return 0
   fi
-
-  local -a files=()
-  local file
 
   IFS=',' read -r -a files <<< "$config_files"
 
@@ -164,7 +185,11 @@ main() {
   local skip=0
   local fail=0
 
-  local project meta working_dir config_files base_dir
+  local project
+  local meta
+  local working_dir
+  local config_files
+  local base_dir
 
   for project in "${PROJECTS[@]}"; do
     log "--------------------------------------------"
@@ -179,8 +204,7 @@ main() {
     working_dir="$(printf '%s\n' "$meta" | sed -n '1p')"
     config_files="$(printf '%s\n' "$meta" | sed -n '2p')"
 
-    # 优先使用 Compose 记录的工作目录。
-    # 这比从第一个 compose 文件路径推导目录更可靠。
+    # 优先使用 Compose 容器标签记录的工作目录。
     if [ -n "$working_dir" ] && [ "$working_dir" != "<no value>" ]; then
       base_dir="$working_dir"
     elif [ -n "$config_files" ] && [ "$config_files" != "<no value>" ]; then
