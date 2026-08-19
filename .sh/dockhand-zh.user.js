@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         DockHAND 中文汉化
 // @namespace    dockhand-zh
-// @version      1.2.5
+// @version      1.2.6
 // @description  将 DockHAND Docker 管理面板界面汉化为简体中文，附带「还原翻译」开关按钮，默认开启
 // @description:zh-CN  将 DockHAND Docker 管理面板界面汉化为简体中文，附带「还原翻译」开关按钮，默认开启
 // @author       CoolMe
@@ -2767,6 +2767,18 @@
     "Small": "小",
     "Medium": "中",
     "Large": "大",
+
+  // ===== v1.2.6 补充 =====
+    ": shows environments that have at least one of the selected labels.": "：显示具有至少一个所选标签的环境。",
+    ": shows only environments that have every selected label.": "：仅显示具有所有所选标签的环境。",
+    "and caddy-docker-proxy": "以及 caddy-docker-proxy",
+    "site-address labels, and surface the resulting URLs as clickable pills next to ports. When off, only explicit": "site-address 标签，并将生成的 URL 显示为端口旁的可点击标签。关闭时，仅显示显式的",
+    "labels are shown.": "标签。",
+    "Compact": "紧凑",
+    "Standard": "标准",
+    "Detailed": "详细",
+    "Full": "完整",
+    "List": "列表",
   };
 
   // ============ 插值模板：正则 -> 替换 ============
