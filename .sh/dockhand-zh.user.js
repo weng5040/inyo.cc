@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         DockHAND 中文汉化
 // @namespace    dockhand-zh
-// @version      1.2.3
+// @version      1.2.4
 // @description  将 DockHAND Docker 管理面板界面汉化为简体中文，附带「还原翻译」开关按钮，默认开启
 // @description:zh-CN  将 DockHAND Docker 管理面板界面汉化为简体中文，附带「还原翻译」开关按钮，默认开启
 // @author       CoolMe
@@ -2756,6 +2756,12 @@
     "Absolute path on the agent's host where it keeps stack folders. Used only to back up each stack's compose and config. Leave empty for the default": "代理主机上保存堆栈文件夹的绝对路径。仅用于备份每个堆栈的 compose 和配置。留空则使用默认的",
     "Go to Settings → Notifications": "前往设置 → 通知",
     "to add channels first.": "以先添加渠道。",
+
+  // ===== v1.2.4 release-notes 说明片段 =====
+    "Surface a release-notes link next to the image name on rows with updates available. The link is resolved from the image's": "在有可用更新的行上，在镜像名称旁显示版本说明链接。该链接从镜像的",
+    "label, from the": "标签、从",
+    "registry path, or from an explicit": "仓库路径，或从显式的",
+    "label override.": "标签覆盖中解析。",
   };
 
   // ============ 插值模板：正则 -> 替换 ============
