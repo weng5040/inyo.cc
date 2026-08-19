@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         DockHAND 中文汉化
 // @namespace    dockhand-zh
-// @version      1.2.2
+// @version      1.2.3
 // @description  将 DockHAND Docker 管理面板界面汉化为简体中文，附带「还原翻译」开关按钮，默认开启
 // @description:zh-CN  将 DockHAND Docker 管理面板界面汉化为简体中文，附带「还原翻译」开关按钮，默认开启
 // @author       CoolMe
@@ -2773,6 +2773,19 @@
     [/^(\d+)d$/, "$1 天"],
     [/^(\d+) total$/, "共 $1"],
     [/^(\d+) days$/, "$1 天"],
+    [/^Failed to pause (.+)$/, "暂停 $1 失败"],
+    [/^Failed to remove (.+)$/, "删除 $1 失败"],
+    [/^Failed to restart (.+)$/, "重启 $1 失败"],
+    [/^Failed to start (.+)$/, "启动 $1 失败"],
+    [/^Failed to stop (.+)$/, "停止 $1 失败"],
+    [/^Failed to unpause (.+)$/, "恢复 $1 失败"],
+    [/^Failed to export (.+)$/, "导出 $1 失败"],
+    [/^Failed to delete (.+)$/, "删除 $1 失败"],
+    [/^Created stack "(.+)"$/, "已创建堆栈 \"$1\""],
+    [/^Adopted stack "(.+)"$/, "已接管堆栈 \"$1\""],
+    [/^Volume cloned as "(.+)"$/, "存储卷已克隆为 \"$1\""],
+    [/^Cannot remove built-in network "(.+)"$/, "无法删除内置网络 \"$1\""],
+    [/^Password rotated for "(.+)"$/, "已为 \"$1\" 轮换密码"],
     [/^Failed to (.+)$/, "失败：$1"],
     // ---- 实测补充 v1.1.0 ----
     [/^\/ (\d+) total$/, "/ 共 $1"],
@@ -2802,7 +2815,40 @@
     [/^Update (\d+) selected container\(s\)$/, "更新 $1 个选中的容器"],
     [/^Update (\d+)$/, "更新 $1"],
     [/^(\d+) labels$/, "$1 个标签"],
-    [/^(\d+) channels$/, "$1 个渠道"]
+    [/^(\d+) channels$/, "$1 个渠道"],
+    [/^Updated environment: (.+)$/, "已更新环境：$1"],
+    [/^Paused (.+)$/, "已暂停 $1"],
+    [/^Resumed (.+)$/, "已恢复 $1"],
+    [/^Restarted (.+)$/, "已重启 $1"],
+    [/^Redeployed (.+)$/, "已重新部署 $1"],
+    [/^Started (.+)$/, "已启动 $1"],
+    [/^Stopped (.+)$/, "已停止 $1"],
+    [/^Deleted (.+)$/, "已删除 $1"],
+    [/^Created (.+)$/, "已创建 $1"],
+    [/^Tagged as (.+)$/, "已标记为 $1"],
+    [/^Brought down (.+)$/, "已关闭 $1"],
+    [/^Connected to (.+)$/, "已连接到 $1"],
+    [/^Disconnected from (.+)$/, "已从 $1 断开"],
+    [/^Connected (.+) to (.+)$/, "已将 $1 连接到 $2"],
+    [/^Disconnected (.+) from (.+)$/, "已将 $1 从 $2 断开"],
+    [/^Exporting (.+)\.\.\.$/, "正在导出 $1..."],
+    [/^Loading (.+)\.\.\.$/, "正在加载 $1..."],
+    [/^Loaded (.+) from (.+)$/, "已从 $2 加载 $1"],
+    [/^Connection failed: (.+)$/, "连接失败：$1"],
+    [/^LDAP connection failed: (.+)$/, "LDAP 连接失败：$1"],
+    [/^OIDC connection failed: (.+)$/, "OIDC 连接失败：$1"],
+    [/^Failed: (.+)$/, "失败：$1"],
+    [/^Test failed: (.+)$/, "测试失败：$1"],
+    [/^Updated (\d+) container\(s\)$/, "已更新 $1 个容器"],
+    [/^Failed to update (\d+) container\(s\)$/, "更新 $1 个容器失败"],
+    [/^Found (\d+) Docker sockets$/, "找到 $1 个 Docker socket"],
+    [/^Created (\d+) backup schedule\(s\)$/, "已创建 $1 个备份计划"],
+    [/^Deleted (\d+) execution\(s\)$/, "已删除 $1 条执行记录"],
+    [/^Uploaded (\d+) file\(s\)$/, "已上传 $1 个文件"],
+    [/^Adopted (\d+) stack\(s\)$/, "已接管 $1 个堆栈"],
+    [/^Schedule removed: (.+)$/, "计划已删除：$1"],
+    [/^Triggered: (.+)$/, "已触发：$1"],
+    [/^Scanner cache cleared \((\d+) items removed\)$/, "扫描器缓存已清除（移除了 $1 项）"]
   ];
 
   // ============ 翻译引擎 ============
