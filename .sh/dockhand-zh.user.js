@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         DockHAND 中文汉化
 // @namespace    dockhand-zh
-// @version      1.2.1
+// @version      1.2.2
 // @description  将 DockHAND Docker 管理面板界面汉化为简体中文，附带「还原翻译」开关按钮，默认开启
 // @description:zh-CN  将 DockHAND Docker 管理面板界面汉化为简体中文，附带「还原翻译」开关按钮，默认开启
 // @author       CoolMe
@@ -2748,6 +2748,14 @@
     "An image uses :latest or is untagged": "镜像使用了 :latest 或未打标签",
     "Add restart: unless-stopped": "添加 restart: unless-stopped",
     "Add a `services:` block, or check for a typo in the key.": "添加 `services:` 块，或检查键中的拼写错误。",
+
+  // ===== v1.2.2 连接类型说明 =====
+    "Connect directly to Docker Engine API on TCP port.": "直接连接到 TCP 端口上的 Docker Engine API。",
+    "agent listens, Dockhand connects.": "代理监听，Dockhand 连接。",
+    "agent connects out to Dockhand. No port forwarding needed.": "代理主动连接 Dockhand。无需端口转发。",
+    "Absolute path on the agent's host where it keeps stack folders. Used only to back up each stack's compose and config. Leave empty for the default": "代理主机上保存堆栈文件夹的绝对路径。仅用于备份每个堆栈的 compose 和配置。留空则使用默认的",
+    "Go to Settings → Notifications": "前往设置 → 通知",
+    "to add channels first.": "以先添加渠道。",
   };
 
   // ============ 插值模板：正则 -> 替换 ============
