@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         DockHAND 中文汉化
 // @namespace    dockhand-zh
-// @version      1.1.16
+// @version      1.1.17
 // @description  将 DockHAND Docker 管理面板界面汉化为简体中文，附带「还原翻译」开关按钮，默认开启
 // @description:zh-CN  将 DockHAND Docker 管理面板界面汉化为简体中文，附带「还原翻译」开关按钮，默认开启
 // @author       CoolMe
@@ -2266,6 +2266,24 @@
     "any newer version, even a different flavor — noisier": "任何较新版本，即使是不同的变体——更嘈杂",
     "never auto-applied": "从不自动应用",
     "always kept": "始终保留",
+
+  // ===== v1.1.17 栈编辑器弹窗补充 =====
+    "Not specified": "未指定",
+    "Click volume/network/config/secret": "点击卷/网络/配置/密钥",
+    "Edit compose file and environment variables": "编辑 compose 文件和环境变量",
+    "Save & redeploy": "保存并重新部署",
+    "Adopt stacks": "接管栈",
+    "Browse to a compose file or scan a directory for stacks.": "浏览到 compose 文件或扫描目录以查找栈。",
+    "Browse the Dockhand host filesystem to find compose files. Files are managed locally — Hawser only proxies Docker API calls, not filesystem access.": "浏览 Dockhand 主机文件系统以查找 compose 文件。文件在本地管理——Hawser 仅代理 Docker API 调用，不代理文件系统访问。",
+    "Scan this folder": "扫描此文件夹",
+    "Deploy from Git": "从 Git 部署",
+    "Deploy a compose stack from a Git repository": "从 Git 仓库部署 compose 栈",
+    "Update git stack settings": "更新 Git 栈设置",
+    "Populate": "填充",
+    "— this stack is running in Docker but Dockhand doesn't know where its compose file is stored on disk. Browse to locate the file to start editing and managing it.": "—— 此栈正在 Docker 中运行，但 Dockhand 不知道其 compose 文件存储在磁盘的哪个位置。浏览以定位文件，即可开始编辑和管理它。",
+    "Relative to repository root, e.g.": "相对于仓库根目录，例如",
+    "for root": "表示根目录",
+    "to build images from Dockerfiles before starting containers.": "在启动容器前从 Dockerfile 构建镜像。",
   };
 
   // ============ 插值模板：正则 -> 替换 ============
@@ -2306,12 +2324,14 @@
     [/^Version (.+)$/, "版本 $1"],
     [/^Update all \((\d+)\)$/, "全部更新 ($1)"],
     [/^(\d+) of (\d+) selected$/, "已选 $1/$2"],
-    [/^Uptime (.+)$/, "运行时长 $1"]
+    [/^Uptime (.+)$/, "运行时长 $1"],
+    [/^(\d+) optional$/, "$1 个可选"],
+    [/^Adopt stacks to (.+)$/, "接管栈到 $1"]
   ];
 
   // ============ 翻译引擎 ============
   const ATTRS = ["placeholder", "title", "aria-label"];
-  const SKIP_TAGS = new Set(["SCRIPT", "STYLE", "CODE", "PRE", "TEXTAREA", "NOSCRIPT", "KBD", "SAMP"]);
+  const SKIP_TAGS = new Set(["SCRIPT", "STYLE", "PRE", "TEXTAREA", "NOSCRIPT", "KBD", "SAMP"]);
   const MAX_LEN = 300;
 
   // 翻译记录（用于还原）
@@ -2357,9 +2377,11 @@
   }
 
   function isInEditor(el) {
-    // 跳过代码编辑器（CodeMirror 6 / Monaco / contenteditable）内的文本
+    // 跳过代码编辑器（CodeMirror 6 / Monaco / contenteditable / textarea / pre）内的文本
+    // 注意：不再排除 <code>——DockHAND 里 <code> 大量用于 UI 提示的等宽文字（如 "Enter stack name above"），应翻译；
+    // 真正的代码在 .cm-editor/.cm-content 里，仍被排除。字典精确匹配保证 <code> 里的技术值（host/.env/--build 等）不误翻。
     return !!(el && el.closest && el.closest(
-      '.cm-editor, .cm-content, .cm-line, [contenteditable="true"], [contenteditable=""], textarea, pre, code'
+      '.cm-editor, .cm-content, .cm-line, [contenteditable="true"], [contenteditable=""], textarea, pre'
     ));
   }
 
