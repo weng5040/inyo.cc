@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         DockHAND 中文汉化
 // @namespace    dockhand-zh
-// @version      1.1.17
+// @version      1.1.18
 // @description  将 DockHAND Docker 管理面板界面汉化为简体中文，附带「还原翻译」开关按钮，默认开启
 // @description:zh-CN  将 DockHAND Docker 管理面板界面汉化为简体中文，附带「还原翻译」开关按钮，默认开启
 // @author       CoolMe
@@ -2326,7 +2326,9 @@
     [/^(\d+) of (\d+) selected$/, "已选 $1/$2"],
     [/^Uptime (.+)$/, "运行时长 $1"],
     [/^(\d+) optional$/, "$1 个可选"],
-    [/^Adopt stacks to (.+)$/, "接管栈到 $1"]
+    [/^Adopt stacks to (.+)$/, "接管栈到 $1"],
+    [/^Update (\d+) selected container\(s\)$/, "更新 $1 个选中的容器"],
+    [/^Update (\d+)$/, "更新 $1"]
   ];
 
   // ============ 翻译引擎 ============
