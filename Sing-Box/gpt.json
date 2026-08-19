@@ -50,7 +50,8 @@
         "openai.nooc.ink",
         "AI.com",
         "coze.com",
-        "generativelanguage.googleapis.com"
+        "generativelanguage.googleapis.com",
+        "github-connector-test.inyo.cc"
       ]
     }
   ]
