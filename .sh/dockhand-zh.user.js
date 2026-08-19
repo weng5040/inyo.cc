@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         DockHAND 中文汉化
 // @namespace    dockhand-zh
-// @version      1.1.14
+// @version      1.1.15
 // @description  将 DockHAND Docker 管理面板界面汉化为简体中文，附带「还原翻译」开关按钮，默认开启
 // @description:zh-CN  将 DockHAND Docker 管理面板界面汉化为简体中文，附带「还原翻译」开关按钮，默认开启
 // @author       CoolMe
@@ -1172,6 +1172,8 @@
     "Label filter matching": "标签过滤匹配方式",
     "Docker logs use UTC timestamps by default. When enabled, timestamps like": "Docker 日志默认使用 UTC 时间戳。启用后，类似以下的时间戳",
     "are converted to local time using your date/time settings.": "将按你的日期/时间设置转换为本地时间。",
+    "Override the Docker network mode for vulnerability scanner containers. Use": "覆盖漏洞扫描容器的 Docker 网络模式。使用",
+    "on hosts where the default bridge can't reach the internet (e.g. iptables disabled, SELinux restricted).": "，用于默认 bridge 无法访问互联网的主机（例如 iptables 被禁用、SELinux 受限）。",
     "Adopted stacks": "已接管的栈",
     "Already adopted": "已接管",
     "Apply to all": "应用到全部",
