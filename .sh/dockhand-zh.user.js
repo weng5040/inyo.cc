@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         DockHAND 中文汉化
 // @namespace    dockhand-zh
-// @version      1.2.4
+// @version      1.2.5
 // @description  将 DockHAND Docker 管理面板界面汉化为简体中文，附带「还原翻译」开关按钮，默认开启
 // @description:zh-CN  将 DockHAND Docker 管理面板界面汉化为简体中文，附带「还原翻译」开关按钮，默认开启
 // @author       CoolMe
@@ -2762,6 +2762,11 @@
     "label, from the": "标签、从",
     "registry path, or from an explicit": "仓库路径，或从显式的",
     "label override.": "标签覆盖中解析。",
+
+  // ===== v1.2.5 字体大小 =====
+    "Small": "小",
+    "Medium": "中",
+    "Large": "大",
   };
 
   // ============ 插值模板：正则 -> 替换 ============
