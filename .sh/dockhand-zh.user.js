@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         DockHAND 中文汉化
 // @namespace    dockhand-zh
-// @version      1.2.7
+// @version      1.2.8
 // @description  将 DockHAND Docker 管理面板界面汉化为简体中文，附带「还原翻译」开关按钮，默认开启
 // @description:zh-CN  将 DockHAND Docker 管理面板界面汉化为简体中文，附带「还原翻译」开关按钮，默认开启
 // @author       CoolMe
@@ -2789,6 +2789,27 @@
     "Detailed": "详细",
     "Full": "完整",
     "List": "列表",
+
+  // ===== v1.2.8 ConfirmPopover 确认弹窗 =====
+    "Prune all unused images": "清理所有未使用的镜像",
+    "clear environment variables": "清除环境变量",
+    "Clear activity log": "清除活动日志",
+    "Delete backup config": "删除备份配置",
+    "Delete backup schedule": "删除备份计划",
+    "Prune stopped containers": "清理已停止的容器",
+    "Prune unused volumes": "清理未使用的存储卷",
+    "Update container": "更新容器",
+    "Restart container": "重启容器",
+    "Stop container": "停止容器",
+    "Delete container": "删除容器",
+    "Pause container": "暂停容器",
+    "Remove container": "删除容器",
+    "Restart stacks": "重启堆栈",
+    "Down stacks": "停止堆栈（移除容器）",
+    "Stop stack": "停止堆栈",
+    "Down stack": "停止堆栈（移除容器）",
+    "Delete volume": "删除存储卷",
+    "Confirm": "确认",
   };
 
   // ============ 插值模板：正则 -> 替换 ============
@@ -2881,7 +2902,15 @@
     [/^Adopted (\d+) stack\(s\)$/, "已接管 $1 个堆栈"],
     [/^Schedule removed: (.+)$/, "计划已删除：$1"],
     [/^Triggered: (.+)$/, "已触发：$1"],
-    [/^Scanner cache cleared \((\d+) items removed\)$/, "扫描器缓存已清除（移除了 $1 项）"]
+    [/^Scanner cache cleared \((\d+) items removed\)$/, "扫描器缓存已清除（移除了 $1 项）"],
+    [/^Start (\d+) stopped containers?$/, "启动 $1 个已停止的容器"],
+    [/^Stop (\d+) running containers?$/, "停止 $1 个运行中的容器"],
+    [/^Pause (\d+) running containers?$/, "暂停 $1 个运行中的容器"],
+    [/^Unpause (\d+) paused containers?$/, "恢复 $1 个已暂停的容器"],
+    [/^Restart (\d+) containers?$/, "重启 $1 个容器"],
+    [/^Remove (\d+) containers?$/, "删除 $1 个容器"],
+    [/^Update all (\d+) containers$/, "全部更新 $1 个容器"],
+    [/^Delete (\d+) volumes?$/, "删除 $1 个存储卷"]
   ];
 
   // ============ 翻译引擎 ============
