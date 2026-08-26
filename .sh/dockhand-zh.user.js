@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         DockHAND 中文汉化
 // @namespace    dockhand-zh
-// @version      1.2.11
+// @version      1.2.12
 // @description  将 DockHAND Docker 管理面板界面汉化为简体中文，附带「还原翻译」开关按钮，默认开启
 // @description:zh-CN  将 DockHAND Docker 管理面板界面汉化为简体中文，附带「还原翻译」开关按钮，默认开启
 // @author       CoolMe
@@ -2892,10 +2892,16 @@
     "This repository is already used by": "此仓库已被以下对象使用：",
     "Enter a token manually or generate one. Set the same token as": "手动输入令牌或生成一个。设置与以下内容相同的令牌：",
     "⚠ Backup cancelled by user": "⚠ 备份已被用户取消",
+  // ===== v1.2.12 logs 页 streaming/timestamps + 磁盘 I/O =====
+    "Pause live streaming": "暂停实时流",
+    "Resume live streaming": "继续实时流",
+    "Hide timestamps": "隐藏时间戳",
+    "Show timestamps": "显示时间戳",
   };
 
   // ============ 插值模板：正则 -> 替换 ============
   const patterns = [
+    [/^↓(.+?) read \/ ↑(.+?) written$/, "读取 ↓$1 / 写入 ↑$2"],
     [/^Up (.+)$/, "已运行 $1"],
     [/^Export image as (.+)$/, "导出镜像为 $1"],
     [/^(\d+) containers?$/, "$1 个容器"],
