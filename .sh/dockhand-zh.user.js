@@ -1,12 +1,12 @@
 // ==UserScript==
 // @name         DockHAND 中文汉化
 // @namespace    dockhand-zh
-// @version      1.2.12
+// @version      1.2.13
 // @description  将 DockHAND Docker 管理面板界面汉化为简体中文，附带「还原翻译」开关按钮，默认开启
 // @description:zh-CN  将 DockHAND Docker 管理面板界面汉化为简体中文，附带「还原翻译」开关按钮，默认开启
 // @author       CoolMe
 // @license      MIT
-// @match        http://172.16.7.117:3011/*
+// @match        http://172.16.7.7:3011/*
 // @match        http://localhost:3000/*
 // @match        http://127.0.0.1:3000/*
 // @run-at       document-idle
@@ -19,10 +19,10 @@
 
   // ============ 端口守卫 ============
   // 说明：Tampermonkey 的 @match 遵循 Chrome MV3 match pattern 规范，会忽略端口，
-  // 例如 @match http://172.16.7.117:3011/* 实际会匹配 172.16.7.117 的所有端口。
+  // 例如 @match http://172.16.7.7:3011/* 实际会匹配 172.16.7.7 的所有端口。
   // 因此这里必须二次校验，确保脚本只在目标端口生效。
   const _portOK =
-    (location.hostname === "172.16.7.117" && location.port === "3011") ||
+    (location.hostname === "172.16.7.7" && location.port === "3011") ||
     (location.hostname === "localhost" && location.port === "3000") ||
     (location.hostname === "127.0.0.1" && location.port === "3000");
   if (!_portOK) return;
