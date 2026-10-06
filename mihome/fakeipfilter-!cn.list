@@ -78,3 +78,27 @@ na.b.g-tun.com
 +.media.dssott.com
 #Wifi Calling
 +.pub.3gppnetwork.org
+
+# ── 补充（2026-10-06）：各平台连通性探测 ──
+connectivitycheck.gstatic.com
+connectivitycheck.android.com
+captive.apple.com
+nmcheck.gnome.org
+connectivitycheck.platform.hicloud.com
+# 补充：NTP 授时
+ntp.ubuntu.com
+time-macos.apple.com
+time.asia.apple.com
+time1.apple.com
+time2.apple.com
+time3.apple.com
+time4.apple.com
+time5.apple.com
+time6.apple.com
+time7.apple.com
+time1.google.com
+time2.google.com
+time3.google.com
+time4.google.com
+# 补充：游戏延迟测速
+speedtest.cros.wr.pvp.net
