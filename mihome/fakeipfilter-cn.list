@@ -115,3 +115,9 @@ stun.*.cn
 stun.*.*.cn
 #Steam 国内 CDN
 alibaba.cdn.steampipe.steamcontent.com
+
+# ── 补充（2026-10-06）──
+# 局域网（NetBIOS 名称解析需真实 IP）
+WORKGROUP
+# 国家授时中心
+ntp.ntsc.ac.cn
