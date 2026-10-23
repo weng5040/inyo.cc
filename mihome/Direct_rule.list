@@ -71,6 +71,3 @@ DOMAIN-SUFFIX,www.1lou.xyz
 
 #设备拆解- iFixit
 DOMAIN-SUFFIX,ifixit.com
-
-# Chrome 官方 apt 源（2026-10-23）：dl.google.com 国内直连不可达，改走 Google 组
-DOMAIN-SUFFIX,dl.google.com,Google
