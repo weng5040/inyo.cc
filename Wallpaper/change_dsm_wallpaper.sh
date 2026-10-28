@@ -78,19 +78,74 @@ else
   echo "未设置保存路径，跳过复制."
 fi
 
-# 设置系统的登录欢迎信息
-echo "[x] 正在设置欢迎信息..."
-sed -i s/login_welcome_title=.*//g /etc/synoinfo.conf
-echo "login_welcome_title=\"$title\"" >> /etc/synoinfo.conf
-sed -i s/login_welcome_msg=.*//g /etc/synoinfo.conf
-echo "login_welcome_msg=\"$copyright\"" >> /etc/synoinfo.conf
+# 设置系统的登录欢迎信息 + 应用登录页面壁纸
+# 采用「生成副本 -> 校验 -> 原子替换(rename)」方式写入 /etc/synoinfo.conf：
+#   1) 只在副本上改动，原文件全程不动
+#   2) 校验通过才用 mv(rename) 原子换入，失败则丢弃副本、原文件零改动
+#   3) 旧键用 grep -v 真正删除（不再用 sed 清空行），文件不会随运行次数膨胀
+echo "[x] 正在更新 synoinfo.conf（原子写入）..."
+SYNOINFO=/etc/synoinfo.conf
+SYNOINFO_NEW="${SYNOINFO}.new.$$"
+SYNOINFO_OK=0
 
-# 应用登录页面壁纸
-echo "[x] 正在应用登录页面壁纸..."
-sed -i s/login_background_customize=.*//g /etc/synoinfo.conf
-echo "login_background_customize=\"yes\"" >> /etc/synoinfo.conf
-sed -i s/login_background_type=.*//g /etc/synoinfo.conf
-echo "login_background_type=\"fromDS\"" >> /etc/synoinfo.conf
+# 转义双引号与反斜杠，避免标题/版权含特殊字符时把配置写坏
+esc_q() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
+
+# 备份当前配置（优先放到壁纸保存目录，未设置则放 /root）
+if [ -n "$savepath" ] && [ -d "$savepath" ]; then
+  SYNOINFO_BAK="$savepath/synoinfo.conf.bak.$(/bin/date +%Y%m%d)"
+elif [ -d /root ]; then
+  SYNOINFO_BAK="/root/synoinfo.conf.bak.$(/bin/date +%Y%m%d)"
+else
+  SYNOINFO_BAK=""
+fi
+if [ -n "$SYNOINFO_BAK" ]; then
+  cp -p "$SYNOINFO" "$SYNOINFO_BAK" 2>/dev/null && echo "已备份配置: $SYNOINFO_BAK"
+fi
+
+# 以原文件为底稿生成副本（临时文件必须与目标同分区，rename 才是原子的）
+if grep -v -E '^login_(welcome_title|welcome_msg|background_customize|background_type)=' "$SYNOINFO" > "$SYNOINFO_NEW" 2>/dev/null; then
+  {
+    printf 'login_welcome_title="%s"\n' "$(esc_q "$title")"
+    printf 'login_welcome_msg="%s"\n' "$(esc_q "$copyright")"
+    printf 'login_background_customize="yes"\n'
+    printf 'login_background_type="fromDS"\n'
+  } >> "$SYNOINFO_NEW"
+
+  # 校验：文件非空、4 个键各恰好 1 条、体积合理
+  [ -s "$SYNOINFO_NEW" ] || SYNOINFO_OK=-1
+  for k in login_welcome_title login_welcome_msg login_background_customize login_background_type; do
+    [ "$(grep -c "^${k}=" "$SYNOINFO_NEW")" -eq 1 ] || SYNOINFO_OK=-1
+  done
+  [ "$(wc -c < "$SYNOINFO_NEW")" -gt 5000 ] || SYNOINFO_OK=-1
+
+  # 属主与权限必须在替换前设好（mv 生效的是副本自身的属性）
+  if [ "$SYNOINFO_OK" != "-1" ]; then
+    if chown root:root "$SYNOINFO_NEW" 2>/dev/null && chmod 644 "$SYNOINFO_NEW" 2>/dev/null; then
+      SYNOINFO_OK=1
+    fi
+  fi
+
+  if [ "$SYNOINFO_OK" = "1" ]; then
+    sync
+    if mv -f "$SYNOINFO_NEW" "$SYNOINFO"; then
+      sync
+      echo "[x] synoinfo.conf 已原子更新"
+    else
+      echo "[!] 替换失败，原配置未改动"
+      rm -f "$SYNOINFO_NEW"
+      SYNOINFO_OK=0
+    fi
+  else
+    echo "[!] 新配置校验未通过，已放弃写入，原配置未改动"
+    rm -f "$SYNOINFO_NEW"
+    SYNOINFO_OK=0
+  fi
+else
+  echo "[!] 生成新配置失败，原配置未改动"
+  rm -f "$SYNOINFO_NEW"
+  SYNOINFO_OK=0
+fi
 
 # 删除现有的登录背景文件，并使用新下载的壁纸替换
 rm -rf /usr/syno/etc/login_background*.jpg
@@ -121,3 +176,6 @@ if [ "$desktop" == "yes" ]; then
   #ln -sf /usr/syno/synoman/webman/resources/images/2x/default_wallpaper/dsm7_01.jpg /usr/syno/synoman/webman/resources/images/default_wallpaper/01.jpg
   #ln -sf /usr/syno/synoman/webman/resources/images/2x/default_wallpaper/dsm7_01.jpg /usr/syno/synoman/webman/resources/images/default_wallpaper/02.jpg
 fi
+
+# 若 synoinfo.conf 写入失败，返回非零，便于任务计划记录到异常
+[ "$SYNOINFO_OK" = "1" ] || exit 1
