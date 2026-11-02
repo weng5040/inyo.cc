@@ -52,3 +52,56 @@ DOMAIN-SUFFIX,www.1lou.me
 
 # Chrome 官方 apt 源（2026-10-23）：dl.google.com 国内直连不可达，改走代理
 DOMAIN-SUFFIX,dl.google.com
+
+# ── Google@Cn 规则集误判纠正（2026-11-02 实测）───────────────────
+# 以下域名被 geosite:google@cn 判为国内直连，但实测国内直连 443 全部超时，
+# 走代理正常（www.gstatic.com 延迟 157ms / c.pki.goog 349ms）。
+# 致命影响：gstatic 静态资源、PKI 证书吊销链(CRL/OCSP)、Google API 客户端、
+#           Chrome/Android 更新、崩溃上报全部失败。
+# 放在 Proxy_rule.list 顶部规则位置（优先于 Google@Cn_Domain）即可纠正。
+DOMAIN-SUFFIX,gstatic.com
+DOMAIN-SUFFIX,gstaticadssl.l.google.com
+DOMAIN,checkin.gstatic.com
+DOMAIN,connectivitycheck.gstatic.com
+DOMAIN,csi.gstatic.com
+
+# PKI / 证书链（HTTPS 验证、CRL/OCSP 吊销检查）
+DOMAIN-SUFFIX,pki.goog
+DOMAIN,pki-goog.l.google.com
+
+# Google API 客户端 / 更新 / 上报
+DOMAIN,clientservices.googleapis.com
+DOMAIN,update.googleapis.com
+DOMAIN,firebase-settings.crashlytics.com
+DOMAIN,update.crashlytics.com
+DOMAIN,safebrowsing-cache.google.com
+DOMAIN,tools.google.com
+DOMAIN,service.urchin.com
+
+# 下载 / 引导
+DOMAIN,dl.l.google.com
+DOMAIN,download.mlcc.google.com
+DOMAIN,download.tensorflow.google.com
+
+# 重定向器（gvt1/gcpcdn/chat/mail/play 等，Google 前端资源与更新分发）
+DOMAIN-SUFFIX,redirector.gvt1.com
+DOMAIN,redirector.gcpcdn.gvt1.com
+DOMAIN,redirector.offline-maps.gvt1.com
+DOMAIN,redirector.snap.gvt1.com
+DOMAIN,redirector.c.chat.google.com
+DOMAIN,redirector.c.mail.google.com
+DOMAIN,redirector.c.pack.google.com
+DOMAIN,redirector.c.play.google.com
+DOMAIN,redirector.c.youtubeeducation.com
+DOMAIN,cache.pack.google.com
+DOMAIN,dg-meta.video.google.com
+
+# 广告/统计（直连同样超时；走代理可正常返回，避免长时间挂起）
+DOMAIN-SUFFIX,google-analytics.com
+DOMAIN-SUFFIX,googleanalytics.com
+DOMAIN-SUFFIX,googlesyndication.com
+DOMAIN-SUFFIX,doubleclick.net
+DOMAIN,pagead-googlehosted.l.google.com
+DOMAIN,www-google-analytics.l.google.com
+DOMAIN,www-googletagmanager.l.google.com
+DOMAIN,ssl-google-analytics.l.google.com
