@@ -61,9 +61,6 @@ DOMAIN-SUFFIX,dl.google.com
 # 放在 Proxy_rule.list 顶部规则位置（优先于 Google@Cn_Domain）即可纠正。
 DOMAIN-SUFFIX,gstatic.com
 DOMAIN-SUFFIX,gstaticadssl.l.google.com
-DOMAIN,checkin.gstatic.com
-DOMAIN,connectivitycheck.gstatic.com
-DOMAIN,csi.gstatic.com
 
 # PKI / 证书链（HTTPS 验证、CRL/OCSP 吊销检查）
 DOMAIN-SUFFIX,pki.goog
