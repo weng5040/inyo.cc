@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# docker-compose-up.sh  —  Compose 项目「有更新才更新」自动更新脚本  v3.1.0
+# docker-compose-up.sh  —  Compose 项目「有更新才更新」自动更新脚本  v3.2.0
 # -----------------------------------------------------------------------------
 # 目标：
 #   1. 发现本机正在运行的 Docker Compose 项目；
@@ -8,19 +8,24 @@
 #   3. 只有存在可用更新时才执行 `up -d --remove-orphans`，否则直接跳过；
 #   4. 输出详细日志 + 末尾「更新汇总」（哪个项目更新了、从什么版本到什么版本）。
 #
-# v3.1.0（本次改动）：改回「逐项目顺序检测」——一个项目从元数据 -> pull ->
-#   判定 -> up -d 完整走完再处理下一个，日志按项目成块、时间戳单调递增。
+# v3.2.0（本次改动）：把「每个项目 pull 前/后各刷一次全机镜像映射
+#   (`docker images --no-trunc`，本机 47 镜像实测 ~350ms/次，26×2=52 次 ≈ 18s)」
+#   换成「只批量解析本项目引用的镜像 ID (`docker image inspect`，~47ms/次)」。
+#   保持两次快照的语义与判定逻辑完全不变，日志顺序/块结构也不变。
+#   行数不符或引用解析失败时逐条回退，保证正确性优先。
+#
+# v3.1.0：改回「逐项目顺序检测」——一个项目从元数据 -> pull -> 判定 -> up -d
+#   完整走完再处理下一个，日志按项目成块、时间戳单调递增。
 #   彻底移除 v3.0.0 的并发 pull（PARALLEL / pull_worker / wlog / wait -n /
 #   阶段拆分 / 回放 worker 日志），因为并发虽然快 ~3x，但日志里「判定标题时间」
 #   与「块内 pull 行时间」对不上，可读性差。
 #   代价：总耗时回到与 v2 相当（瓶颈是 26 个串行 pull 的网络等待，约 70s）。
-#   但 v3 里减少 docker CLI 调用次数的优化全部保留（批量 inspect、全局镜像
-#   映射、去掉三次完整快照与仅作告警的 config -q），比 v2 仍略快。
 #
 # 相对最初版本的保留改进：
 #   - 无 JSON 摘要输出，只保留追加式 LOG_FILE；
-#   - 镜像 ID 映射：每次判定前后各一次全局 `docker images --no-trunc`；
-#     容器元数据：一次批量 `docker inspect` 取全部字段；
+#   - 容器元数据：一次批量 `docker inspect` 取全部字段；
+#   - 镜像 ID：一次批量 `docker image inspect` 只解析本项目引用，
+#     不再枚举全机镜像清单，也不保留跨项目全局状态；
 #   - 末尾「更新汇总」按项目列出镜像引用 / 服务 / 旧版本 -> 新版本
 #     （OCI version 标签 > 镜像构建时间 > 短 ID）。
 #
@@ -60,7 +65,7 @@ DRY_RUN="${DRY_RUN:-false}"
 INCLUDE_PROJECTS="${INCLUDE_PROJECTS:-}"
 EXCLUDE_PROJECTS="${EXCLUDE_PROJECTS:-}"
 
-SCRIPT_VERSION="3.1.0"
+SCRIPT_VERSION="3.2.0"
 RUN_ID="$(date '+%Y%m%dT%H%M%S')-$$"
 RUN_START_AT="$(date '+%F %T')"
 RUN_START_EPOCH="$(date +%s)"
@@ -218,17 +223,56 @@ norm_ref() {
   printf '%s' "$r"
 }
 
-# 一次 `docker images --no-trunc` 建立全量「引用 -> 完整镜像 ID」映射
-# 每个项目在 pull 前 / pull 后各刷一次，保证 before 是该项目 pull 前的真实状态
-load_map() {
-  local which="$1" ref id nref
+# 只解析「本项目」引用对应的镜像 ID（一次批量 docker image inspect），
+# 替代 v3.1 的全机 `docker images --no-trunc` 枚举。
+# 每个项目在 pull 前 / pull 后各调用一次，保证 before 是该项目 pull 前的真实状态，
+# 且不保留任何跨项目全局镜像状态。
+# 输出按参数顺序与 ref 一一对应（已实测）；行数不符或解析失败时逐条回退。
+load_project_map() {
+  local which="$1" idx="$2" ref nref id rc=0 i
+  local -a refs=() batch=() ids=()
   if [ "$which" = before ]; then MAP_BEFORE=(); else MAP_AFTER=(); fi
-  while IFS='|' read -r ref id; do
+
+  local reffile="$TMP_DIR/p${idx}/refs"
+  [ -f "$reffile" ] || return 0
+  mapfile -t refs < "$reffile"
+
+  # sha256: 与 name@sha256: 由 map_get 直接短路，无需进批量查询
+  for ref in "${refs[@]}"; do
     [ -n "$ref" ] || continue
-    [ "$ref" = "<none>:<none>" ] && continue
     nref="$(norm_ref "$ref")"
-    if [ "$which" = before ]; then MAP_BEFORE["$nref"]="$id"; else MAP_AFTER["$nref"]="$id"; fi
-  done < <(docker images --no-trunc --format '{{.Repository}}:{{.Tag}}|{{.ID}}' 2>/dev/null || true)
+    case "$nref" in
+      sha256:*|*@sha256:*) continue ;;
+    esac
+    batch+=("$ref")
+  done
+  [ "${#batch[@]}" -gt 0 ] || return 0
+
+  local outfile="$TMP_DIR/inspect_${idx}_${which}.out"
+  : > "$outfile"
+  docker image inspect -f '{{.Id}}' "${batch[@]}" > "$outfile" 2>/dev/null || rc=$?
+  mapfile -t ids < "$outfile"
+
+  if [ "$rc" -eq 0 ] && [ "${#ids[@]}" -eq "${#batch[@]}" ]; then
+    for i in "${!batch[@]}"; do
+      nref="$(norm_ref "${batch[$i]}")"
+      id="${ids[$i]}"
+      [ -n "$id" ] || id="MISSING"
+      if [ "$which" = before ]; then MAP_BEFORE["$nref"]="$id"; else MAP_AFTER["$nref"]="$id"; fi
+    done
+  else
+    # 逐条回退：docker 版本行为差异或个别引用解析失败时仍能拿到正确 ID
+    log WARN "批量解析 ${#batch[@]} 个引用返回 ${#ids[@]} 行 (rc=${rc})，改为逐条回退"
+    for ref in "${batch[@]}"; do
+      nref="$(norm_ref "$ref")"
+      id="$(docker image inspect -f '{{.Id}}' "$ref" 2>/dev/null || true)"
+      # 完全限定名有时解析不到（如 docker.io/library/...），再试归一化后的写法
+      [ -n "$id" ] || id="$(docker image inspect -f '{{.Id}}' "$nref" 2>/dev/null || true)"
+      id="${id%%$'\n'*}"
+      [ -n "$id" ] || id="MISSING"
+      if [ "$which" = before ]; then MAP_BEFORE["$nref"]="$id"; else MAP_AFTER["$nref"]="$id"; fi
+    done
+  fi
 }
 
 # 查某个引用在某张映射里的镜像 ID；未命中回退到 docker image inspect
@@ -472,9 +516,9 @@ main() {
     log INFO "工作目录=${wd}"
     log INFO "Compose 参数=${args[*]}"
 
-    # pull 前镜像映射（本次 pull 之前的真实状态）
-    load_map before
-    log DEBUG "pull 前本地镜像映射: ${#MAP_BEFORE[@]} 个引用"
+    # pull 前镜像 ID 快照（只解析本项目引用；本次 pull 之前的真实状态）
+    load_project_map before "$idx"
+    log DEBUG "pull 前本项目镜像解析: ${#MAP_BEFORE[@]} 个引用"
     local line svc ref rid cid old new services
     log INFO "pull 前镜像快照 ($(wc -l < "$TMP_DIR/p${idx}/refs" | tr -d ' ') 个镜像引用):"
     while IFS= read -r ref; do
@@ -497,9 +541,9 @@ main() {
     fi
     log INFO "pull 阶段耗时=${P_PULL_DUR}s（共 ${P_PULL_ATTEMPTS} 次尝试）"
 
-    # pull 后镜像映射
-    load_map after
-    log DEBUG "pull 后本地镜像映射: ${#MAP_AFTER[@]} 个引用"
+    # pull 后镜像 ID 快照（同一批引用重新解析）
+    load_project_map after "$idx"
+    log DEBUG "pull 后本项目镜像解析: ${#MAP_AFTER[@]} 个引用"
 
     local changed=0 stale=0
     local -a trans_refs=()
