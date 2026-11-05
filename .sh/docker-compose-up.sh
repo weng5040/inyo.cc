@@ -8,7 +8,17 @@
 #   3. 只有存在可用更新时才执行 `up -d --remove-orphans`，否则直接跳过；
 #   4. 输出详细日志 + 末尾「更新汇总」（哪个项目更新了、从什么版本到什么版本）。
 #
-# v3.2.0（本次改动）：把「每个项目 pull 前/后各刷一次全机镜像映射
+# v3.3（US-003，暂未改 SCRIPT_VERSION，留给 US-005 统一提升）：新增「真实版本探测」——
+#   按项目白名单对运行中容器执行只读版本命令（如 magpie --version → magpie v0.1.3071），
+#   取不到再回退 OCI 标签 / 构建时间 / 短 ID；旧版本在 up -d 前取、新版本在重建后
+#   重新定位容器再取；DRY_RUN 下明确标注「未重建」。
+#
+# v3.3（US-004）：汇总改为「逐 ref 成对输出」——引用行紧跟它自己的「旧 → 新」，
+#   多 ref 项目不再丢行；新旧版本字符串相同时标注「仅镜像 ID 变化」并用短 ID 区分；
+#   DRY_RUN 下新版本位置直接写「不可用（DRY_RUN 未重建）」，不再先给一个可能被
+#   误读的版本号；探测输出改为跳过空行取首条非空行（避免误判为探测失败而回退）。
+#
+# v3.2.0：把「每个项目 pull 前/后各刷一次全机镜像映射
 #   (`docker images --no-trunc`，本机 47 镜像实测 ~350ms/次，26×2=52 次 ≈ 18s)」
 #   换成「只批量解析本项目引用的镜像 ID (`docker image inspect`，~47ms/次)」。
 #   保持两次快照的语义与判定逻辑完全不变，日志顺序/块结构也不变。
@@ -46,6 +56,11 @@
 #   MAX_RETRY(3)  RETRY_DELAYS("10 30 60")  PULL_TIMEOUT(900)  UP_TIMEOUT(900)
 #   DRY_RUN(false)
 #   INCLUDE_PROJECTS(空=全部)  EXCLUDE_PROJECTS(空)
+#   VERSION_PROBE_ENABLE(true)  VERSION_PROBE_TIMEOUT(5)
+#   VERSION_PROBE_FILE(<脚本同目录>/docker-compose-up.version-probes)
+#     版本探测配置：每行「<项目名><TAB><只读命令>」，# 开头为注释；
+#     内置白名单 magpie/oxidns/smartdns/qwenpaw/certimate/dpanel/sun-panel，
+#     也可用 VERSION_PROBE_<项目名大写> 环境变量覆盖单个项目。
 #
 # 退出码：0 = 全部正常（含「无更新跳过」）；1 = 至少有一个项目失败
 # =============================================================================
@@ -64,6 +79,12 @@ UP_TIMEOUT="${UP_TIMEOUT:-900}"
 DRY_RUN="${DRY_RUN:-false}"
 INCLUDE_PROJECTS="${INCLUDE_PROJECTS:-}"
 EXCLUDE_PROJECTS="${EXCLUDE_PROJECTS:-}"
+# 真实版本探测（v3.3 特性）：按项目只读探测运行中容器的真实版本，
+# 取不到再回退 OCI 标签 / 构建时间 / 短 ID。详见 version_probe_cmd()。
+VERSION_PROBE_ENABLE="${VERSION_PROBE_ENABLE:-true}"
+VERSION_PROBE_TIMEOUT="${VERSION_PROBE_TIMEOUT:-5}"
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]:-$0}")" >/dev/null 2>&1 && pwd || printf '.')"
+VERSION_PROBE_FILE="${VERSION_PROBE_FILE:-${SCRIPT_DIR}/docker-compose-up.version-probes}"
 
 SCRIPT_VERSION="3.2.0"
 RUN_ID="$(date '+%Y%m%dT%H%M%S')-$$"
@@ -101,6 +122,8 @@ PRUNE_IMAGES="$(norm_bool "$PRUNE_IMAGES")"
 MAX_RETRY="$(norm_int "$MAX_RETRY" 3)"
 PULL_TIMEOUT="$(norm_int "$PULL_TIMEOUT" 900)"
 UP_TIMEOUT="$(norm_int "$UP_TIMEOUT" 900)"
+VERSION_PROBE_ENABLE="$(norm_bool "$VERSION_PROBE_ENABLE")"
+VERSION_PROBE_TIMEOUT="$(norm_int "$VERSION_PROBE_TIMEOUT" 5)"
 
 timestamp() {
   local t=""
@@ -292,10 +315,17 @@ map_get() {
   printf '%s' "$id"
 }
 
-# 单个镜像的可读版本：OCI version 标签 > 构建时间；始终附 12 位短 ID
-image_version() {
-  local id="$1" sep fmt info labels created ver="" short
-  short="${id#sha256:}"; short="${short:0:12}"
+# 12 位短镜像 ID（展示与「仅镜像 ID 变化」判定都用它）
+img_short() {
+  local s="${1#sha256:}"
+  printf '%s' "${s:0:12}"
+}
+
+# 镜像元数据里的版本：OCI version 标签 > 构建时间 > 无版本标签。
+# 输出 "版本|来源"，来源为 oci / created / none；短 ID 由调用方拼接。
+# 注意：Labels 为 nil 时 docker 输出字符串 null；dockports 该键为空串，均需判空。
+image_meta_version() {
+  local id="$1" sep fmt info labels created ver="" src="none"
   sep=$'\x1f'
   fmt="{{json .Config.Labels}}${sep}{{.Created}}${sep}{{json .RepoTags}}"
   info="$(docker image inspect -f "$fmt" "$id" 2>/dev/null || true)"
@@ -305,11 +335,128 @@ image_version() {
   fi
   ver="$(printf '%s' "$labels" | grep -o '"org.opencontainers.image.version":"[^"]*"' | head -n1 | sed 's/.*:"//; s/"$//' || true)"
   [ -n "$ver" ] || ver="$(printf '%s' "$labels" | grep -o '"org.label-schema.version":"[^"]*"' | head -n1 | sed 's/.*:"//; s/"$//' || true)"
-  if [ -z "$ver" ] && [ -n "$created" ]; then
-    ver="${created:0:10} ${created:11:5}"
+  if [ -n "$ver" ]; then
+    src="oci"
+  elif [ -n "$created" ]; then
+    ver="${created:0:10} ${created:11:5}"; src="created"
+  else
+    ver="无版本标签"
   fi
-  [ -n "$ver" ] || ver="无版本标签"
-  printf '%s (%s)' "$ver" "$short"
+  printf '%s|%s' "$ver" "$src"
+}
+
+# 按项目返回只读版本探测命令（空 = 不探测）。
+# 优先级：VERSION_PROBE_<项目> 环境变量 > VERSION_PROBE_FILE 配置 > 内置白名单。
+# 严禁从 Entrypoint/Cmd 自动推导二进制名：会拿到 tini / Node / Python 的运行时版本，
+# 并触发 nginx bind() / entrypoint chown / s6-overlay 等副作用（US-001 实测）。
+# 新增项目必须先按三态实测：version -> --version -> -v（必要时 --help | grep -i version）。
+version_probe_cmd() {
+  local project="$1" p="" c="" env_key=""
+  env_key="VERSION_PROBE_$(printf '%s' "$project" | tr 'a-z-' 'A-Z_')"
+  # 1) 单项目环境变量覆盖
+  if [ -n "${!env_key:-}" ]; then
+    printf '%s' "${!env_key}"
+    return 0
+  fi
+  # 2) 配置文件（每行 <项目名><TAB><命令>，# 开头为注释）
+  if [ -n "$VERSION_PROBE_FILE" ] && [ -f "$VERSION_PROBE_FILE" ]; then
+    while IFS=$'\t' read -r p c; do
+      case "$p" in ''|'#'*) continue ;; esac
+      if [ "$p" = "$project" ] && [ -n "$c" ]; then
+        printf '%s' "$c"
+        return 0
+      fi
+    done < "$VERSION_PROBE_FILE"
+  fi
+  # 3) 内置白名单（均已实测：只读、无副作用、首行为版本）
+  case "$project" in
+    magpie)    printf 'magpie --version' ;;
+    oxidns)    printf 'oxidns --version' ;;
+    smartdns)  printf 'smartdns -v' ;;
+    qwenpaw)   printf '/app/venv/bin/qwenpaw --version' ;;
+    certimate) printf 'cd /app && ./certimate version' ;;
+    dpanel)    printf 'cd /app/server && ./dpanel version' ;;
+    sun-panel) printf "cd /app && ./sun-panel --help 2>&1 | grep -iE '^Version:' | head -n 1" ;;
+    *)         return 1 ;;
+  esac
+}
+
+# 在运行中容器内执行白名单命令取真实版本；超时 / 失败 / 未配置一律返回非零。
+# 只读、静默（stderr 丢弃）、逐条 timeout，绝不把 env / 凭据打进日志。
+probe_exec_version() {
+  local container="$1" project="$2" cmd="" out=""
+  [ "$VERSION_PROBE_ENABLE" = true ] || return 1
+  [ -n "$container" ] || return 1
+  cmd="$(version_probe_cmd "$project" 2>/dev/null || true)"
+  [ -n "$cmd" ] || return 1
+  out="$(timeout "$VERSION_PROBE_TIMEOUT" docker exec "$container" sh -c "$cmd" 2>/dev/null || true)"
+  # 跳过空行取首条非空输出：有些程序会先打一行空行或进度行，
+  # 旧实现只取 head -n 1 会把空行当成「探测失败」而错误回退到镜像元数据。
+  out="$(printf '%s\n' "$out" | tr -d '\r' | awk 'NF { print; exit }')"
+  out="${out#"${out%%[![:space:]]*}"}"
+  out="${out%"${out##*[![:space:]]}"}"
+  [ -n "$out" ] || return 1
+  printf '%s' "$out"
+}
+
+# 真实版本：先白名单 exec（需运行中容器），失败回退镜像元数据。
+# 输出 "版本|来源"，来源为 exec / oci / created / none。
+real_version() {
+  local project="$1" image_id="$2" container="${3:-}" ver=""
+  ver="$(probe_exec_version "$container" "$project" 2>/dev/null || true)"
+  if [ -n "$ver" ]; then
+    printf '%s|exec' "$ver"
+    return 0
+  fi
+  image_meta_version "$image_id"
+}
+
+# 展示用格式：<版本> (<12 位短 ID>)[ (回退标记)]
+# 「真实运行版本」(exec) 不加标记；来自镜像元数据的一律标注 (回退)。
+format_rv() {
+  local rv="$1" image_id="$2" ver="" src="" mark=""
+  ver="${rv%|*}"; src="${rv##*|}"
+  case "$src" in
+    exec)    mark="" ;;
+    oci)     mark=" (回退)" ;;
+    created) mark=" (回退:构建时间)" ;;
+    *)       mark=" (回退:无版本标签)" ;;
+  esac
+  printf '%s (%s)%s' "$ver" "$(img_short "$image_id")" "$mark"
+}
+
+# 追加一行「旧 -> 新」到项目明细；版本字符串相同时标注「仅镜像 ID 变化」。
+# $1=明细文件 $2=ref $3=旧镜像ID $4=旧 rv $5=新 rv（或字面量） $6=新镜像ID
+# [$7=额外备注] [$8=true 表示 $5 是字面量而非 "版本|来源"（如 DRY_RUN 的「不可用」）]
+append_version_line() {
+  local file="$1" ref="$2" old_id="$3" old_rv="$4" new_rv="$5" new_id="$6"
+  local extra="${7:-}" literal="${8:-false}"
+  local oldv="" newv="" line="" newpart=""
+  oldv="${old_rv%|*}"
+  if [ "$literal" = true ]; then
+    # 字面量（例如 DRY_RUN 未重建）：原样输出，不拼短 ID、不加回退标记
+    newpart="$new_rv"; newv="$new_rv"
+  else
+    newpart="$(format_rv "$new_rv" "$new_id")"; newv="${new_rv%|*}"
+  fi
+  line="$(format_rv "$old_rv" "$old_id") → ${newpart}${extra}"
+  if [ "$literal" != true ] && [ "$oldv" = "$newv" ]; then
+    line="${line} （仅镜像 ID 变化）"
+  fi
+  printf '        %s\n' "$line" >> "$file"
+}
+
+# 旧容器 ID：collect_metadata 写下的 containers（svc|ref|rid|cid）
+container_for_ref() {
+  local idx="$1" ref="$2"
+  awk -F'|' -v r="$ref" '$2 == r {print $4; exit}' "$TMP_DIR/p${idx}/containers" 2>/dev/null
+}
+
+# 新容器 ID：up -d 后重新 inspect 写下的 inspect.after（cid|ref）
+# 注意：Compose 重建后容器 ID 会变，绝不能缓存旧 ID。
+new_container_for_ref() {
+  local idx="$1" ref="$2"
+  awk -F'|' -v r="$ref" '$2 == r {print $1; exit}' "$TMP_DIR/p${idx}/inspect.after" 2>/dev/null
 }
 
 # 采集单个项目元数据：1 次 docker ps + 1 次批量 docker inspect
@@ -464,6 +611,7 @@ main() {
   log INFO "配置: LOG_FILE=${LOG_FILE} LOCK_FILE=${LOCK_FILE} 检测方式=逐项目顺序"
   log INFO "配置: DRY_RUN=${DRY_RUN} PRUNE_IMAGES=${PRUNE_IMAGES} MAX_RETRY=${MAX_RETRY} RETRY_DELAYS=${RETRY_DELAYS} PULL_TIMEOUT=${PULL_TIMEOUT}s UP_TIMEOUT=${UP_TIMEOUT}s"
   log INFO "配置: INCLUDE_PROJECTS=${INCLUDE_PROJECTS:-<all>} EXCLUDE_PROJECTS=${EXCLUDE_PROJECTS:-<none>}"
+  log INFO "配置: 真实版本探测=${VERSION_PROBE_ENABLE} timeout=${VERSION_PROBE_TIMEOUT}s 配置文件=${VERSION_PROBE_FILE:-<无>}"
 
   if ! detect_compose; then
     COUNT_FAIL=$((COUNT_FAIL + 1)); FINAL_RC=1
@@ -581,22 +729,40 @@ main() {
     fi
     log INFO "✅ 检测到可用更新: changed_images=${changed} stale_services=${stale}"
 
-    # 组装该项目的「从什么版本到什么版本」明细
+    # 组装该项目的「从什么版本到什么版本」明细。
+    # 旧版本必须在 up -d / prune 之前取（prune 后旧镜像会 No such image）；
+    # 新版本在 up -d 成功后用「重新查到的容器」再取，取不到回退新镜像元数据。
     local detail_file="$TMP_DIR/detail_${idx}.txt"
     : > "$detail_file"
     printf '  ● %s\n' "$p" >> "$detail_file"
+    # 旧版本必须在 up -d / prune 之前取；按 ref 缓存，稍后与各自的「新版本」成对输出。
+    # 多 ref 项目不能只留第一条：必须逐 ref 完整列出（US-004 验收项）。
+    local -A OLD_RV=() REF_SVC=()
+    local oldctr="" rv="" services=""
     for ref in "${trans_refs[@]}"; do
-      old="${TRANS_OLD["$ref"]}"; new="${TRANS_NEW["$ref"]}"
+      old="${TRANS_OLD["$ref"]}"
       services="$(awk -F'|' -v r="$ref" '$2 == r && $1 != "" {print $1}' "$TMP_DIR/p${idx}/containers" | paste -sd, - || true)"
-      printf '      %s  [%s]\n' "$ref" "${services:-N/A}" >> "$detail_file"
-      printf '        %s → %s\n' "$(image_version "$old")" "$(image_version "$new")" >> "$detail_file"
+      REF_SVC["$ref"]="${services:-N/A}"
+      oldctr="$(container_for_ref "$idx" "$ref")"
+      OLD_RV["$ref"]="$(real_version "$p" "$old" "$oldctr")"
+      rv="${OLD_RV["$ref"]}"
+      log DEBUG "  旧版本: ${ref} ctr=${oldctr:0:12} -> ${rv}"
     done
-    if [ "$stale" -gt 0 ] && [ "$changed" -eq 0 ]; then
-      printf '        （无新镜像下载，但运行容器基于旧镜像，执行重建）\n' >> "$detail_file"
-    fi
+    # US-003 落的项目级接口保持不变（多 ref 时写第一条；汇总以逐 ref 为准）
+    printf '%s\n' "${OLD_RV["${trans_refs[0]}"]}" > "$TMP_DIR/p${idx}/version_old"
 
     if [ "$DRY_RUN" = true ]; then
       log INFO "决策=UPDATE(DRY_RUN) | 仅模拟，不执行 up -d"
+      # 无新容器：新版本位置直接给字面量「不可用」，不先伪造一个可能被误读的版本号
+      printf '%s\n' "不可用（DRY_RUN 未重建）" > "$TMP_DIR/p${idx}/version_new"
+      for ref in "${trans_refs[@]}"; do
+        printf '      %s  [%s]\n' "$ref" "${REF_SVC["$ref"]:-N/A}" >> "$detail_file"
+        append_version_line "$detail_file" "$ref" "${TRANS_OLD["$ref"]}" \
+          "${OLD_RV["$ref"]}" "不可用（DRY_RUN 未重建）" "" "" true
+      done
+      if [ "$stale" -gt 0 ] && [ "$changed" -eq 0 ]; then
+        printf '        （无新镜像下载，但运行容器基于旧镜像，执行重建）\n' >> "$detail_file"
+      fi
       printf '        [DRY_RUN 模拟，未实际重建]\n' >> "$detail_file"
       cat "$detail_file" >> "$SUMMARY_FILE"
       COUNT_UPDATE=$((COUNT_UPDATE + 1))
@@ -619,6 +785,37 @@ main() {
       continue
     fi
     log INFO "✅ up -d 完成，耗时=$(( $(date +%s) - up_start ))s"
+
+    # 新版本：Compose 重建后容器 ID 会变，必须重新查（不能缓存旧 ID）。
+    # 只有配置了白名单命令的项目才需要额外一次 ps + inspect。
+    local -a newcids=()
+    local newctr=""
+    : > "$TMP_DIR/p${idx}/inspect.after"
+    if [ -n "$(version_probe_cmd "$p" 2>/dev/null || true)" ]; then
+      mapfile -t newcids < <(docker ps --filter "label=com.docker.compose.project=$p" --format '{{.ID}}' 2>/dev/null || true)
+      if [ "${#newcids[@]}" -gt 0 ]; then
+        docker inspect -f '{{.Id}}|{{.Config.Image}}' "${newcids[@]}" 2>/dev/null > "$TMP_DIR/p${idx}/inspect.after" || true
+      fi
+    fi
+    # 先逐 ref 取新版本（exec 需要重建后的新容器 ID）
+    local -A NEW_RV=()
+    for ref in "${trans_refs[@]}"; do
+      new="${TRANS_NEW["$ref"]}"
+      newctr="$(new_container_for_ref "$idx" "$ref")"
+      NEW_RV["$ref"]="$(real_version "$p" "$new" "$newctr")"
+      log DEBUG "  新版本: ${ref} ctr=${newctr:0:12} -> ${NEW_RV["$ref"]}"
+    done
+    # US-003 项目级接口保持不变（多 ref 写第一条；汇总以逐 ref 为准）
+    printf '%s\n' "${NEW_RV["${trans_refs[0]}"]}" > "$TMP_DIR/p${idx}/version_new"
+    # 逐 ref 成对输出：引用行 + 紧随其后的「旧 → 新」，多 ref 不丢行
+    for ref in "${trans_refs[@]}"; do
+      printf '      %s  [%s]\n' "$ref" "${REF_SVC["$ref"]:-N/A}" >> "$detail_file"
+      append_version_line "$detail_file" "$ref" "${TRANS_OLD["$ref"]}" \
+        "${OLD_RV["$ref"]}" "${NEW_RV["$ref"]}" "${TRANS_NEW["$ref"]}"
+    done
+    if [ "$stale" -gt 0 ] && [ "$changed" -eq 0 ]; then
+      printf '        （无新镜像下载，但运行容器基于旧镜像，执行重建）\n' >> "$detail_file"
+    fi
 
     local stale_after
     stale_after="$(verify_updated "$p")"
