@@ -622,8 +622,8 @@ main() {
   acquire_lock
 
   log INFO "===== compose-auto-update v${SCRIPT_VERSION} 开始 ====="
-  dlog "run_start|run_id=$(dlog_kv "$RUN_ID")|ts=$(date -Is)|host=$(dlog_kv "$HOST_NAME")|pid=$$|script_version=$(dlog_kv "$SCRIPT_VERSION")|dry_run=${DRY_RUN}|trigger=$(dlog_kv "${CAU_TRIGGER:-cron}")|log_file=$(dlog_kv "$LOG_FILE")"
-  dlog "script_state|run_id=$(dlog_kv "$RUN_ID")|ts=$(date -Is)|event=$(dlog_kv "${CAU_SCRIPT_SOURCE:-unknown}")|sha256=$(dlog_kv "${CAU_SCRIPT_SHA:-unknown}")|script_version=$(dlog_kv "$SCRIPT_VERSION")"
+  dlog "run_start|run_id=$(dlog_kv "$RUN_ID")|ts=$(date -Is)|host=$(dlog_kv "$HOST_NAME")|pid=$$|script_version=$(dlog_kv "$SCRIPT_VERSION")|dry_run=${DRY_RUN}|trigger=$(dlog_kv "${CAU_TRIGGER:-unknown}")|log_file=$(dlog_kv "$LOG_FILE")"
+  dlog "script_state|run_id=$(dlog_kv "$RUN_ID")|ts=$(date -Is)|event=local_cache|sha256=$(dlog_kv "$(sha256sum "${BASH_SOURCE[0]}" 2>/dev/null | cut -d' ' -f1 || true)")|script_version=$(dlog_kv "$SCRIPT_VERSION")"
   log INFO "run_id=${RUN_ID} host=${HOST_NAME} pid=$$ started_at=${RUN_START_AT}"
   log INFO "配置: LOG_FILE=${LOG_FILE} LOCK_FILE=${LOCK_FILE} 检测方式=逐项目顺序"
   log INFO "配置: DRY_RUN=${DRY_RUN} PRUNE_IMAGES=${PRUNE_IMAGES} MAX_RETRY=${MAX_RETRY} RETRY_DELAYS=${RETRY_DELAYS} PULL_TIMEOUT=${PULL_TIMEOUT}s UP_TIMEOUT=${UP_TIMEOUT}s"
