@@ -140,6 +140,20 @@ log() {
   printf '%s\n' "$line" || true
 }
 
+# [DATA] 锚点行：单行 k=v 事实，仅供 AI / 文本工具提取。
+# 只追加到现有 LOG_FILE，不改动、不替代任何人读输出；值内的 | 与换行由 dlog_kv 转义。
+dlog_kv() {
+  local s="${1-}"
+  s="${s//|/%7C}"
+  s="${s//$'\n'/ }"
+  s="${s//$'\r'/ }"
+  printf '%s' "$s"
+}
+
+dlog() {
+  printf '[%s] [DATA] %s\n' "$(timestamp)" "$*" >> "$LOG_FILE" 2>/dev/null || true
+}
+
 log_block() {
   local level="$1" prefix="$2" file="$3" line=""
   [ -f "$file" ] || return 0
@@ -557,6 +571,7 @@ print_summary() {
   local dur=$(( $(date +%s) - RUN_START_EPOCH ))
   log INFO "==================== 更新汇总 ===================="
   log INFO "检查项目=${COUNT_TOTAL} | 已更新=${COUNT_UPDATE} | 无更新=${COUNT_NOUPDATE} | 跳过=${COUNT_SKIP} | 失败=${COUNT_FAIL} | 总耗时=${dur}s"
+  dlog "run_end|run_id=$(dlog_kv "$RUN_ID")|ts=$(date -Is)|checked=${COUNT_TOTAL}|updated=${COUNT_UPDATE}|unchanged=${COUNT_NOUPDATE}|skipped=${COUNT_SKIP}|failed=${COUNT_FAIL}|duration_ms=$(( dur * 1000 ))|dry_run=${DRY_RUN}|exit_code=${FINAL_RC}"
   if [ "$COUNT_UPDATE" -gt 0 ]; then
     log INFO "已更新项目（镜像版本变化）："
     while IFS= read -r line; do log INFO "$line"; done < "$SUMMARY_FILE"
@@ -607,6 +622,8 @@ main() {
   acquire_lock
 
   log INFO "===== compose-auto-update v${SCRIPT_VERSION} 开始 ====="
+  dlog "run_start|run_id=$(dlog_kv "$RUN_ID")|ts=$(date -Is)|host=$(dlog_kv "$HOST_NAME")|pid=$$|script_version=$(dlog_kv "$SCRIPT_VERSION")|dry_run=${DRY_RUN}|trigger=$(dlog_kv "${CAU_TRIGGER:-cron}")|log_file=$(dlog_kv "$LOG_FILE")"
+  dlog "script_state|run_id=$(dlog_kv "$RUN_ID")|ts=$(date -Is)|event=$(dlog_kv "${CAU_SCRIPT_SOURCE:-unknown}")|sha256=$(dlog_kv "${CAU_SCRIPT_SHA:-unknown}")|script_version=$(dlog_kv "$SCRIPT_VERSION")"
   log INFO "run_id=${RUN_ID} host=${HOST_NAME} pid=$$ started_at=${RUN_START_AT}"
   log INFO "配置: LOG_FILE=${LOG_FILE} LOCK_FILE=${LOCK_FILE} 检测方式=逐项目顺序"
   log INFO "配置: DRY_RUN=${DRY_RUN} PRUNE_IMAGES=${PRUNE_IMAGES} MAX_RETRY=${MAX_RETRY} RETRY_DELAYS=${RETRY_DELAYS} PULL_TIMEOUT=${PULL_TIMEOUT}s UP_TIMEOUT=${UP_TIMEOUT}s"
@@ -812,6 +829,11 @@ main() {
       printf '      %s  [%s]\n' "$ref" "${REF_SVC["$ref"]:-N/A}" >> "$detail_file"
       append_version_line "$detail_file" "$ref" "${TRANS_OLD["$ref"]}" \
         "${OLD_RV["$ref"]}" "${NEW_RV["$ref"]}" "${TRANS_NEW["$ref"]}"
+      # [DATA] 版本迁移事实：单行 k=v，不含任何「更新了什么」的分析
+      local d_oldv="${OLD_RV["$ref"]%|*}" d_newv="${NEW_RV["$ref"]%|*}" d_src d_oic="false"
+      d_src="$(oci_label "${TRANS_NEW["$ref"]}" org.opencontainers.image.source)"
+      if [ "$d_oldv" = "$d_newv" ]; then d_oic="true"; fi
+      dlog "image_transition|run_id=$(dlog_kv "$RUN_ID")|ts=$(date -Is)|project=$(dlog_kv "$p")|service=$(dlog_kv "${REF_SVC["$ref"]:-N/A}")|image=$(dlog_kv "$ref")|old_version=$(dlog_kv "$d_oldv")|new_version=$(dlog_kv "$d_newv")|old_digest=$(dlog_kv "${TRANS_OLD["$ref"]}")|new_digest=$(dlog_kv "${TRANS_NEW["$ref"]}")|version_source=$(dlog_kv "${NEW_RV["$ref"]##*|}")|source_url=$(dlog_kv "$d_src")|only_id_changed=${d_oic}|reason=image_digest"
     done
     if [ "$stale" -gt 0 ] && [ "$changed" -eq 0 ]; then
       printf '        （无新镜像下载，但运行容器基于旧镜像，执行重建）\n' >> "$detail_file"
@@ -837,6 +859,7 @@ main() {
     local prc=0
     docker image prune -f >> "$LOG_FILE" 2>&1 || prc=$?
     log INFO "悬空镜像清理完成 rc=${prc}"
+    dlog "prune_done|run_id=$(dlog_kv "$RUN_ID")|ts=$(date -Is)|ran=true|rc=${prc}"
   else
     log INFO "跳过悬空镜像清理 (PRUNE_IMAGES=${PRUNE_IMAGES} 更新数=${COUNT_UPDATE} DRY_RUN=${DRY_RUN})"
   fi
