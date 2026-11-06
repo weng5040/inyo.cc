@@ -151,7 +151,10 @@ dlog_kv() {
 }
 
 dlog() {
-  printf '[%s] [DATA] %s\n' "$(timestamp)" "$*" >> "$LOG_FILE" 2>/dev/null || true
+  local line
+  line="[$(timestamp)] [DATA] $*"
+  printf '%s\n' "$line" >> "$LOG_FILE" 2>/dev/null || true
+  printf '%s\n' "$line" || true
 }
 
 log_block() {
