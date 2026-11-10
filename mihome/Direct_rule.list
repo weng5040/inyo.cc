@@ -72,3 +72,6 @@ DOMAIN-SUFFIX,www.1lou.xyz
 
 #设备拆解- iFixit
 DOMAIN-SUFFIX,ifixit.com
+# awcloudvip.com（2026-11-11）：国内站点（www → 42.194.184.127），走 Custom_Direct；
+# 该域对 fake-ip 敏感，已在母版 fake-ip-filter 单独放行 real-ip
+DOMAIN-SUFFIX,awcloudvip.com
